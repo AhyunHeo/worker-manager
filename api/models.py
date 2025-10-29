@@ -15,7 +15,7 @@ class Node(Base):
     node_type = Column(String)  # central, worker
     hostname = Column(String)
     public_ip = Column(String)
-    vpn_ip = Column(String, unique=True, index=True, nullable=True)  # 실제로는 LAN IP 저장 (호환성 위해 필드명 유지)
+    vpn_ip = Column(String, index=True, nullable=True)  # 실제로는 LAN IP 저장 (호환성 위해 필드명 유지, UNIQUE 제거 - 같은 LAN에 여러 노드 가능)
     status = Column(String, default="registered")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

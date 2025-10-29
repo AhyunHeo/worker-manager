@@ -44,6 +44,34 @@ wait_for_db()
 Base.metadata.create_all(bind=engine)
 logger.info("Database tables created")
 
+# 마이그레이션: vpn_ip UNIQUE 제약조건 제거
+try:
+    from sqlalchemy import text, inspect
+    with engine.connect() as conn:
+        # 인덱스 정보 확인
+        inspector = inspect(engine)
+        indexes = inspector.get_indexes('nodes')
+
+        # ix_nodes_vpn_ip가 UNIQUE인지 확인
+        vpn_ip_index = next((idx for idx in indexes if idx['name'] == 'ix_nodes_vpn_ip'), None)
+
+        if vpn_ip_index and vpn_ip_index.get('unique', False):
+            logger.info("Removing UNIQUE constraint from vpn_ip column...")
+
+            # UNIQUE 인덱스 삭제
+            conn.execute(text("DROP INDEX IF EXISTS ix_nodes_vpn_ip"))
+            conn.commit()
+
+            # 일반 인덱스로 재생성
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_nodes_vpn_ip ON nodes(vpn_ip)"))
+            conn.commit()
+
+            logger.info("✓ Migration completed: vpn_ip UNIQUE constraint removed")
+        else:
+            logger.info("vpn_ip column already configured correctly (no UNIQUE constraint)")
+except Exception as e:
+    logger.warning(f"Migration check failed (this is normal on first run): {e}")
+
 app = FastAPI(
     title="Worker Manager API",
     description="워커 노드 환경 설정 및 컨테이너 배포 시스템",
