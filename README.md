@@ -42,7 +42,9 @@
 
 [📥 install-distributed-ai.bat 다운로드](./install-distributed-ai.bat)
 
-우클릭 → "다른 이름으로 링크 저장"
+> 💡 **단일 파일 설치**: .bat 파일 하나만 다운로드하면 됩니다!
+>
+> 우클릭 → "다른 이름으로 링크 저장"
 
 **2. 설치 파일 실행:**
 
@@ -50,6 +52,8 @@
 # 다운로드한 파일을 더블클릭하거나
 install-distributed-ai.bat
 ```
+
+설치 프로그램이 자동으로 GUI 창을 열고 진행 상황을 보여줍니다.
 
 **3. 설치되는 서비스:**
 
@@ -163,9 +167,8 @@ worker-manager/
 │   ├── models.py                 # 데이터 모델
 │   ├── database.py               # DB 연결
 │   ├── worker_integration.py     # 워커 통합 기능
-│   ├── node_manager.py           # 노드 관리
 │   ├── simple_worker_docker_runner.py  # 워커 실행기
-│   ├── docker_compose_templates.py     # Docker Compose 템플릿
+│   ├── utils.py                  # 유틸리티 함수 (LAN IP 감지 등)
 │   ├── gui/                      # GUI 기반 워커 설정
 │   │   ├── worker_setup_gui_modular.py
 │   │   └── modules/              # 설치 모듈
@@ -175,15 +178,19 @@ worker-manager/
 │   │       ├── network_setup_module.py   # 네트워크 설정
 │   │       └── container_deploy_module.py # 컨테이너 배포
 │   └── central/                  # 중앙 서버 통합
-│       ├── routes.py
-│       └── docker_runner.py
+│       ├── routes.py             # 중앙 서버 라우터
+│       ├── docker_runner.py      # 중앙 서버 설치 스크립트 생성
+│       └── worker_manager.py     # Worker Manager 설치 스크립트 생성
 ├── web-dashboard/                # Flask 웹 대시보드
 │   ├── app.py
 │   └── Dockerfile
 ├── docker-compose.yml            # Docker Compose 설정
 ├── Dockerfile                    # API 서버 Dockerfile
 ├── requirements.txt              # Python 의존성
-├── start.ps1                     # Windows 시작 스크립트
+├── install-distributed-ai.bat    # 올인원 설치 파일 (GUI)
+├── start.bat                     # Windows 시작 스크립트 (배치)
+├── start.ps1                     # Windows 시작 스크립트 (PowerShell)
+├── start.sh                      # Linux/macOS 시작 스크립트
 ├── setup-port-forwarding.ps1     # WSL2 포트 포워딩
 └── .env.example                  # 환경변수 예제
 ```
