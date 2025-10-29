@@ -23,10 +23,19 @@ CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://192.168.0.88:8000')
 
 def generate_worker_setup_gui_modular(node: Node) -> str:
     """워커 노드 통합 설치 GUI 생성 - 모듈화된 버전"""
-    
+
     metadata = json.loads(node.docker_env_vars) if node.docker_env_vars else {}
     server_ip = LOCAL_SERVER_IP
-    
+
+    # VPN 기능이 제거되었으므로 빈 함수 정의 (호환성 유지)
+    vpn_install_function = """
+# VPN 기능은 더 이상 사용하지 않음 (LAN IP 사용)
+function Install-VPN {
+    Write-Host "[INFO] VPN 설치를 건너뜁니다. LAN IP를 사용합니다." -ForegroundColor Green
+    return $true
+}
+"""
+
     # 중앙 서버 IP 설정
     if metadata.get('central_server_ip'):
         central_ip = metadata.get('central_server_ip')
