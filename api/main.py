@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 from database import SessionLocal, engine, Base
 from models import Node, NodeCreate, NodeResponse, NodeStatus
 from worker_integration import router as worker_router
+from central.routes import router as central_router
 
 # DB 연결 재시도 함수
 def wait_for_db(max_retries=30):
@@ -51,6 +52,9 @@ app = FastAPI(
 
 # Worker Integration 라우터 포함
 app.include_router(worker_router, tags=["worker-integration"])
+
+# Central Server 라우터 포함
+app.include_router(central_router, tags=["central-server"])
 
 # CORS 설정
 app.add_middleware(

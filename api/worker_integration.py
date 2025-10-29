@@ -1368,12 +1368,12 @@ echo "========================================="
 async def get_worker_status(node_id: str, db: Session = Depends(get_db)):
     """워커노드 상태 조회"""
     node = db.query(Node).filter(Node.node_id == node_id).first()
-    
+
     if not node:
         raise HTTPException(status_code=404, detail="Node not found")
-    
+
     docker_env = json.loads(node.docker_env_vars) if node.docker_env_vars else {}
-    
+
     return {
         "node_id": node.node_id,
         "status": node.status,
@@ -1384,3 +1384,35 @@ async def get_worker_status(node_id: str, db: Session = Depends(get_db)):
         "created_at": node.created_at,
         "updated_at": node.updated_at
     }
+
+@router.get("/api/download/{node_id}/setup-gui")
+async def download_setup_gui(node_id: str, db: Session = Depends(get_db)):
+    """워커노드 통합 설치 프로그램 다운로드"""
+    # 노드 조회
+    node = db.query(Node).filter(Node.node_id == node_id).first()
+
+    if not node:
+        raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+
+    if not GUI_MODULE_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Setup-GUI module not available")
+
+    # setup-gui 배치 파일 생성
+    try:
+        setup_script = generate_worker_setup_gui_modular(node)
+
+        # 파일명 생성
+        filename = f"DistributedAI_v2.0-worker-setup-{node_id}.bat"
+
+        # Response 생성
+        return Response(
+            content=setup_script,
+            media_type="application/x-msdos-program",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/x-msdos-program"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate setup-gui for {node_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate setup file: {str(e)}")
