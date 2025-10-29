@@ -38,19 +38,20 @@
 
 중앙 서버에 모든 서비스를 한 번에 설치합니다.
 
-**1. 설치 파일 다운로드:**
+**1. 설치 파일 다운로드:** (2개 파일 모두 필요)
 
-[📥 install-distributed-ai.bat 다운로드](./install-distributed-ai.bat)
+- [📥 install-distributed-ai.bat](./install-distributed-ai.bat) - 설치 실행 파일
+- [📥 install-distributed-ai.ps1](./install-distributed-ai.ps1) - GUI 스크립트
 
-> 💡 **단일 파일 설치**: .bat 파일 하나만 다운로드하면 됩니다!
+> 💡 **중요**: 두 파일을 **같은 폴더**에 다운로드하세요!
 >
-> 우클릭 → "다른 이름으로 링크 저장"
+> 각 파일에서 우클릭 → "다른 이름으로 링크 저장"
 
 **2. 설치 파일 실행:**
 
 ```bash
-# 다운로드한 파일을 더블클릭하거나
-install-distributed-ai.bat
+# install-distributed-ai.bat 더블클릭
+# UAC 창에서 "예(Y)" 클릭
 ```
 
 설치 프로그램이 자동으로 GUI 창을 열고 진행 상황을 보여줍니다.
