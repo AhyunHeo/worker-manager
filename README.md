@@ -40,11 +40,11 @@
 
 **1. 설치 파일 다운로드:**
 
-[📥 install-distributed-ai.zip 다운로드](./install-distributed-ai.zip)
+**[📥 최신 릴리즈에서 install-distributed-ai.zip 다운로드](../../releases/latest)**
 
-> 💡 **간편 설치**: ZIP 파일 하나만 다운로드하세요!
+> 💡 **구축형 배포**: 설치 파일만 포함된 ZIP
 >
-> 링크 클릭 → Download 버튼
+> Releases 페이지 → Assets → install-distributed-ai.zip 다운로드
 
 **2. 압축 해제 및 실행:**
 
@@ -53,6 +53,8 @@
 # 2. install-distributed-ai.bat 더블클릭
 # 3. UAC 창에서 "예(Y)" 클릭
 ```
+
+> ⚠️ **주의**: 저장소 Code 버튼의 "Download ZIP"이 아닌, **Releases 페이지**에서 다운로드하세요!
 
 설치 프로그램이 자동으로 GUI 창을 열고 진행 상황을 보여줍니다.
 
