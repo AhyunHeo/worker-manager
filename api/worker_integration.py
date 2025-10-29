@@ -404,10 +404,7 @@ async def api_worker_setup(
             central_server_url=central_url,
             docker_env_vars=json.dumps(metadata),
             status="pending",
-            vpn_ip="0.0.0.0",
-            public_key=unique_pending_key,
-            private_key=unique_pending_key,
-            config="pending"
+            vpn_ip="0.0.0.0"
         )
 
         if existing:
@@ -515,10 +512,7 @@ async def generate_worker_qr(
             central_server_url=central_url,
             docker_env_vars=json.dumps(metadata),
             status="pending",  # 아직 VPN 설정 전
-            vpn_ip="0.0.0.0",  # 임시값
-            public_key=unique_pending_key,  # 고유한 임시 키
-            private_key=unique_pending_key,
-            config="pending"
+            vpn_ip="0.0.0.0"  # 임시값
         )
         
         # 중복 체크 및 업데이트
