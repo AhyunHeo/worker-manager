@@ -5,6 +5,14 @@ REM Central Server + Worker Manager
 REM Self-contained GUI installer
 REM ========================================
 
+REM 관리자 권한 확인 및 요청
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Requesting administrator privileges...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
 setlocal enabledelayedexpansion
 
 echo.
