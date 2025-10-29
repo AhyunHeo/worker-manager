@@ -41,7 +41,42 @@ git clone <repository-url>
 cd worker-manager
 ```
 
-### 2. 환경 설정
+### 2. 자동 시작 (권장)
+
+**Windows (가장 간편):**
+```bash
+start.bat               # start.ps1을 자동으로 실행
+start.bat -d            # 백그라운드 실행
+start.bat -f            # 강제 재생성
+start.bat -d -f         # 백그라운드 + 강제 재생성
+```
+
+**Windows (PowerShell 직접 실행):**
+```powershell
+.\start.ps1             # 기본 실행
+.\start.ps1 -d          # 백그라운드 실행
+.\start.ps1 -f          # 강제 재생성
+.\start.ps1 -d -f       # 백그라운드 + 강제 재생성
+```
+
+**Linux/macOS:**
+```bash
+./start.sh
+```
+
+시작 스크립트는 다음을 자동으로 수행합니다:
+- ✅ LAN IP 자동 감지
+- ✅ .env 파일 자동 생성 및 설정
+- ✅ 방화벽 및 포트 포워딩 설정 (Windows만)
+- ✅ WSL2 포트 포워딩 설정 (Windows만)
+- ✅ Docker Compose 실행
+
+**💡 추천:** Windows 사용자는 `start.bat`를 더블클릭하거나 명령줄에서 실행하세요!
+
+### 3. 수동 설정 (선택사항)
+
+자동 시작 대신 수동으로 설정하려면:
+
 ```bash
 # .env 파일 생성
 cp .env.example .env

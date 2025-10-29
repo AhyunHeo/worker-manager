@@ -19,6 +19,13 @@ def get_lan_ip() -> str:
         str: LAN IP 주소 (예: "192.168.0.100")
              실패 시 "0.0.0.0" 반환
     """
+    import os
+
+    # Docker 컨테이너 내부에서 실행 중인 경우, 환경변수에서 호스트 LAN IP 가져오기
+    local_server_ip = os.getenv('LOCAL_SERVER_IP')
+    if local_server_ip and local_server_ip not in ['localhost', '127.0.0.1', '0.0.0.0', 'auto']:
+        logger.info(f"Using LOCAL_SERVER_IP from environment: {local_server_ip}")
+        return local_server_ip
 
     def is_valid_lan_ip(ip: str) -> bool:
         """LAN IP로 유효한지 확인 (Docker, WSL2, VPN 대역 제외)"""

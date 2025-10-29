@@ -428,15 +428,17 @@ async def api_worker_setup(
             # LAN IP 감지
             lan_ip = get_lan_ip()
             if not lan_ip or lan_ip == "0.0.0.0":
-                logger.warning(f"Could not detect LAN IP, using placeholder for node {request.node_id}")
-                lan_ip = "0.0.0.0"  # 나중에 워커에서 자동 감지하도록
-
-            # 노드 정보 업데이트
-            target_node.vpn_ip = lan_ip  # 필드명은 vpn_ip지만 실제로는 LAN IP 저장
-            target_node.status = "registered"
+                logger.warning(f"Could not detect LAN IP for node {request.node_id}, keeping as pending")
+                # LAN IP 감지 실패 시 None으로 두고 pending 상태 유지
+                target_node.vpn_ip = None
+                target_node.status = "pending"
+            else:
+                # LAN IP 감지 성공 시 등록 완료
+                target_node.vpn_ip = lan_ip  # 필드명은 vpn_ip지만 실제로는 LAN IP 저장
+                target_node.status = "registered"
+                logger.info(f"Successfully registered worker node {request.node_id} via API with LAN IP {lan_ip}")
 
             db.commit()
-            logger.info(f"Successfully registered worker node {request.node_id} via API with LAN IP {lan_ip}")
 
             # 다운로드 URL 생성
             server_host = os.getenv('SERVERURL', 'localhost')
@@ -543,17 +545,20 @@ async def generate_worker_qr(
             try:
                 # LAN IP 감지
                 lan_ip = get_lan_ip()
-                if not lan_ip or lan_ip == "0.0.0.0":
-                    logger.warning(f"Could not detect LAN IP for {request.node_id}, using placeholder")
-                    lan_ip = "0.0.0.0"
-
-                # 노드 정보 업데이트
                 target_node = existing if existing else new_node
-                target_node.vpn_ip = lan_ip  # 필드명은 vpn_ip지만 실제로는 LAN IP
-                target_node.status = "registered"
+
+                if not lan_ip or lan_ip == "0.0.0.0":
+                    logger.warning(f"Could not detect LAN IP for {request.node_id}, keeping as pending")
+                    # LAN IP 감지 실패 시 None으로 두고 pending 상태 유지
+                    target_node.vpn_ip = None
+                    target_node.status = "pending"
+                else:
+                    # LAN IP 감지 성공 시 등록 완료
+                    target_node.vpn_ip = lan_ip  # 필드명은 vpn_ip지만 실제로는 LAN IP
+                    target_node.status = "registered"
+                    logger.info(f"Successfully registered worker node {request.node_id} with LAN IP {lan_ip}")
 
                 db.commit()
-                logger.info(f"Successfully registered worker node {request.node_id} with LAN IP {lan_ip}")
 
             except Exception as e:
                 logger.error(f"Failed to register worker node: {e}")
@@ -1251,12 +1256,14 @@ async def process_worker_installation(
         # LAN IP 감지
         lan_ip = get_lan_ip()
         if not lan_ip or lan_ip == "0.0.0.0":
-            logger.warning(f"Could not detect LAN IP for node {node.node_id}, using placeholder")
-            lan_ip = "0.0.0.0"  # 워커에서 나중에 자동 감지하도록
-
-        # 노드 정보 업데이트
-        node.vpn_ip = lan_ip  # DB 필드명은 vpn_ip지만 실제는 LAN IP 저장
-        node.status = "registered"
+            logger.warning(f"Could not detect LAN IP for node {node.node_id}, keeping as pending")
+            # LAN IP 감지 실패 시 None으로 두고 pending 상태 유지
+            node.vpn_ip = None
+            node.status = "pending"
+        else:
+            # LAN IP 감지 성공 시 등록 완료
+            node.vpn_ip = lan_ip  # DB 필드명은 vpn_ip지만 실제는 LAN IP 저장
+            node.status = "registered"
         node.updated_at = datetime.now(timezone.utc)
 
         # Docker 환경변수 업데이트

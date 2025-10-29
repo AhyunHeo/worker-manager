@@ -7,6 +7,7 @@ import json
 from models import Node
 import base64
 import os
+from .worker_manager import generate_worker_manager_installer
 
 # Global configuration - 환경변수에서 한 번만 로드
 LOCAL_SERVER_IP = os.getenv('LOCAL_SERVER_IP', '192.168.0.88')
@@ -334,14 +335,176 @@ WS_MESSAGE_QUEUE_SIZE=100
     
     docker compose down 2>&1 | Out-Null
     docker compose up -d 2>&1 | Out-Null
-    
+
     Start-Sleep -Seconds 3
-    
+
+    # Worker Manager 설치
+    $statusLabel.Text = 'Installing Worker Manager...'
+    $progressBar.Value = 92
+    [System.Windows.Forms.Application]::DoEvents()
+
+    # LAN IP 자동 감지
+    function Get-LanIP {{
+        $ipconfig = ipconfig | Select-String -Pattern "IPv4.*:\s+(\d+\.\d+\.\d+\.\d+)"
+
+        foreach ($match in $ipconfig) {{
+            $ip = $match.Matches.Groups[1].Value
+
+            # 192.168.x.x 대역만 허용 (Docker, WSL2 제외)
+            if ($ip -match "^192\.168\." -and $ip -notmatch "^192\.168\.65\.") {{
+                return $ip
+            }}
+        }}
+
+        # 감지 실패 시 기본값
+        return "{local_ip}"
+    }}
+
+    $detectedIP = Get-LanIP
+    Write-Host "Detected LAN IP: $detectedIP"
+
+    $wmDir = "$env:USERPROFILE\\worker-manager"
+    if (-not (Test-Path $wmDir)) {{
+        New-Item -ItemType Directory -Path $wmDir | Out-Null
+    }}
+
+    # docker-compose.yml 생성
+    $wmComposeContent = @'
+version: '3.8'
+
+services:
+  worker-api:
+    image: heoaa/worker-manager:latest
+    container_name: worker-api
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - DATABASE_URL=${{DATABASE_URL:-postgresql://worker:workerpass@postgres:5432/workerdb}}
+      - API_PORT=8090
+      - API_TOKEN=${{API_TOKEN:-test-token-123}}
+      - LOCAL_SERVER_IP=${{LOCAL_SERVER_IP}}
+      - CENTRAL_SERVER_URL=${{CENTRAL_SERVER_URL}}
+      - SERVERURL=${{LOCAL_SERVER_IP}}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "0.0.0.0:8090:8090"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - worker_net
+
+  postgres:
+    image: postgres:15
+    container_name: worker-postgres
+    environment:
+      - POSTGRES_DB=workerdb
+      - POSTGRES_USER=worker
+      - POSTGRES_PASSWORD=workerpass
+    volumes:
+      - worker_db_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5434:5432"
+    restart: unless-stopped
+    networks:
+      - worker_net
+
+  web-dashboard:
+    image: heoaa/worker-manager-dashboard:latest
+    container_name: worker-dashboard
+    environment:
+      - API_URL=http://worker-api:8090
+      - API_TOKEN=${{API_TOKEN:-test-token-123}}
+      - LOCAL_SERVER_IP=${{LOCAL_SERVER_IP}}
+    ports:
+      - "0.0.0.0:5000:5000"
+    depends_on:
+      - worker-api
+    restart: unless-stopped
+    networks:
+      - worker_net
+
+networks:
+  worker_net:
+    driver: bridge
+
+volumes:
+  worker_db_data:
+'@
+
+    Set-Content -Path "$wmDir\\docker-compose.yml" -Value $wmComposeContent
+
+    # .env 파일 생성 (감지된 IP 사용)
+    $wmEnvContent = @"
+LOCAL_SERVER_IP=$detectedIP
+API_TOKEN=test-token-123
+DATABASE_URL=postgresql://worker:workerpass@postgres:5432/workerdb
+CENTRAL_SERVER_URL=http://$detectedIP`:8000
+TZ=Asia/Seoul
+PUID=1000
+PGID=1000
+SECRET_KEY=your-secret-key-here
+LOG_LEVEL=INFO
+"@
+
+    Set-Content -Path "$wmDir\\.env" -Value $wmEnvContent
+
+    # 방화벽 규칙 추가 (Worker Manager 포트)
+    $wmPorts = @(
+        @{{Name="Worker-API"; Port=8090; Protocol="TCP"}},
+        @{{Name="Worker-Dashboard"; Port=5000; Protocol="TCP"}}
+    )
+
+    foreach ($portConfig in $wmPorts) {{
+        $ruleName = "Worker-Manager-$($portConfig.Name)"
+
+        # 기존 규칙 삭제
+        $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        if ($existingRule) {{
+            Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        }}
+
+        # 새 규칙 추가
+        try {{
+            New-NetFirewallRule `
+                -DisplayName $ruleName `
+                -Direction Inbound `
+                -Protocol $portConfig.Protocol `
+                -LocalPort $portConfig.Port `
+                -Action Allow `
+                -Enabled True `
+                -Profile Domain,Private,Public `
+                -ErrorAction Stop | Out-Null
+        }} catch {{
+            # 방화벽 설정 실패는 무시 (관리자 권한 없을 수 있음)
+        }}
+    }}
+
+    # Docker 이미지 pull 및 실행
+    $statusLabel.Text = 'Starting Worker Manager...'
+    $progressBar.Value = 95
+    [System.Windows.Forms.Application]::DoEvents()
+
+    Push-Location $wmDir
+    try {{
+        docker compose pull 2>&1 | Out-Null
+        docker compose up -d 2>&1 | Out-Null
+    }} finally {{
+        Pop-Location
+    }}
+
+    Start-Sleep -Seconds 2
+
     $progressBar.Value = 100
-    $statusLabel.Text = 'Central server started successfully!'
-    
+    $statusLabel.Text = 'All services started successfully!'
+
     [System.Windows.Forms.MessageBox]::Show(
-        "Central server is running!`n`nAccess URLs:`n- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}`n- API: http://{local_ip}:{metadata.get('api_port', 8000)}`n- FL Server: http://{local_ip}:{metadata.get('fl_port', 5002)}`n`nWorker Manager: http://{metadata.get('worker_manager_ip', LOCAL_SERVER_IP)}:5000",
+        "Central server and Worker Manager are running!`n`nCentral Server:`n- Frontend: http://$detectedIP:{metadata.get('frontend_port', 3000)}`n- API: http://$detectedIP:{metadata.get('api_port', 8000)}`n- FL Server: http://$detectedIP:{metadata.get('fl_port', 5002)}`n`nWorker Manager:`n- Dashboard: http://$detectedIP`:5000`n- API: http://$detectedIP`:8090`n- Worker Setup: http://$detectedIP`:8090/worker/setup",
         'Success',
         'OK',
         'Information'
