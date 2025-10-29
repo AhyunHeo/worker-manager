@@ -647,7 +647,7 @@ echo "NVIDIA Container Toolkit installation completed"
 
             # Deploy-Container 함수 호출
             Write-Host "[DEBUG] Invoking Deploy-Container function..."
-            $deployResult = Deploy-Container -DistroName $distroName -VpnIP $global:VPN_IP -LanIP $global:LAN_IP -WorkerType $workerType
+            $deployResult = Deploy-Container -DistroName $distroName -WorkerIP $global:VPN_IP -LanIP $global:LAN_IP -WorkerType $workerType
             
             # GUI 응답성 유지
             [System.Windows.Forms.Application]::DoEvents()
@@ -674,8 +674,8 @@ echo "NVIDIA Container Toolkit installation completed"
                 Start-Sleep -Seconds 1
                 [System.Windows.Forms.Application]::DoEvents()
             }}
-            
-            $deployResult = Deploy-Container -DistroName $distroName -VpnIP $global:VPN_IP -LanIP $global:LAN_IP -WorkerType $workerType
+
+            $deployResult = Deploy-Container -DistroName $distroName -WorkerIP $global:VPN_IP -LanIP $global:LAN_IP -WorkerType $workerType
             
             if (-not $deployResult.Success) {{
                 Update-Progress "컨테이너 배포 실패" 0
