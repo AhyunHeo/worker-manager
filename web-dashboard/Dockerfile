@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
-ENV API_URL=http://vpn-api:8090
+ENV API_URL=http://worker-api:8091
 ENV API_TOKEN=test-token-123
 
 EXPOSE 5000

@@ -22,7 +22,7 @@
 ├─ API Server (Port 8000)
 ├─ FL Server (Port 5002)
 └─ Worker Manager
-    ├─ API (Port 8090)
+    ├─ API (Port 8091)
     ├─ Dashboard (Port 5000)
     └─ PostgreSQL (Port 5434)
 
@@ -69,7 +69,7 @@
 
 - Frontend: `http://{서버IP}:3000`
 - Worker Manager: `http://{서버IP}:5000`
-- Worker Setup: `http://{서버IP}:8090/worker/setup`
+- Worker Setup: `http://{서버IP}:8091/worker/setup`
 
 ---
 
@@ -157,7 +157,7 @@ docker-compose up -d
   - 워커 환경 자동 설정
   - 모니터링
 
-- **API Server**: `http://<서버IP>:8090`
+- **API Server**: `http://<서버IP>:8091`
   - RESTful API 엔드포인트
   - `/docs`에서 API 문서 확인
 
@@ -229,28 +229,28 @@ worker-manager/
 
 ### API 문서
 ```
-http://<서버IP>:8090/docs
+http://<서버IP>:8091/docs
 ```
 
 ### 노드 관리
 ```bash
 # 노드 목록 조회
 curl -H "Authorization: Bearer <API_TOKEN>" \
-  http://<서버IP>:8090/nodes
+  http://<서버IP>:8091/nodes
 
 # 새 노드 등록
 curl -X POST -H "Authorization: Bearer <API_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"name": "worker-01", "description": "Worker Node 1"}' \
-  http://<서버IP>:8090/nodes
+  http://<서버IP>:8091/nodes
 
 # 노드 상세 정보
 curl -H "Authorization: Bearer <API_TOKEN>" \
-  http://<서버IP>:8090/nodes/{node_id}
+  http://<서버IP>:8091/nodes/{node_id}
 
 # 시스템 통계
 curl -H "Authorization: Bearer <API_TOKEN>" \
-  http://<서버IP>:8090/stats
+  http://<서버IP>:8091/stats
 ```
 
 ## 🐳 Docker 명령어
@@ -312,8 +312,8 @@ docker-compose down -v
 **해결**:
 ```powershell
 # 관리자 권한으로 PowerShell 실행
-# 포트 3000, 5000, 5002, 8000, 8090 수동 개방
-New-NetFirewallRule -DisplayName "DistributedAI" -Direction Inbound -Protocol TCP -LocalPort 3000,5000,5002,8000,8090 -Action Allow
+# 포트 3000, 5000, 5002, 8000, 8091 수동 개방
+New-NetFirewallRule -DisplayName "DistributedAI" -Direction Inbound -Protocol TCP -LocalPort 3000,5000,5002,8000,8091 -Action Allow
 ```
 
 #### 서비스 시작 확인
@@ -332,14 +332,14 @@ docker-compose ps
 ### 개발 환경 관련
 
 #### Docker 접속 안 됨 (Windows)
-**증상**: `localhost:8090` 접속 실패
+**증상**: `localhost:8091` 접속 실패
 **원인**: WSL2 백엔드 사용 시 Docker가 별도 네트워크에서 실행
 **해결**:
 ```powershell
 # 본인의 실제 IP 확인
 ipconfig
 
-# 해당 IP로 접속 (예: 192.168.0.88:8090)
+# 해당 IP로 접속 (예: 192.168.0.88:8091)
 ```
 
 ### 포트 포워딩 실패
@@ -365,7 +365,7 @@ docker-compose down -v
 ## 📚 추가 문서
 
 - [GUI 모듈 상세 가이드](api/gui/modules/README.md)
-- [FastAPI 문서](http://<서버IP>:8090/docs)
+- [FastAPI 문서](http://<서버IP>:8091/docs)
 
 ## 🔐 보안
 

@@ -247,7 +247,7 @@ services:
       - NET_RAW
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://worker:workerpass@postgres:5432/workerdb}
-      - API_PORT=8090
+      - API_PORT=8091
       - API_TOKEN=${API_TOKEN:-test-token-123}
       - LOCAL_SERVER_IP=${LOCAL_SERVER_IP}
       - CENTRAL_SERVER_URL=${CENTRAL_SERVER_URL}
@@ -255,7 +255,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "0.0.0.0:8090:8090"
+      - "0.0.0.0:8091:8091"
     depends_on:
       - postgres
     restart: unless-stopped
@@ -283,7 +283,7 @@ services:
     image: heoaa/worker-manager-dashboard:latest
     container_name: worker-dashboard
     environment:
-      - API_URL=http://worker-api:8090
+      - API_URL=http://worker-api:8091
       - API_TOKEN=${API_TOKEN:-test-token-123}
       - LOCAL_SERVER_IP=${LOCAL_SERVER_IP}
     ports:
@@ -318,7 +318,7 @@ volumes:
     [System.Windows.Forms.Application]::DoEvents()
 
     try {
-        $ports = @(8090, 5000)
+        $ports = @(8091, 5000)
         foreach ($port in $ports) {
             $ruleName = "Worker-Manager-Port-$port"
             Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
@@ -373,11 +373,11 @@ volumes:
     $statusLabel.Text = 'Worker Manager installed successfully!'
     Write-Log "[SUCCESS] Installation completed successfully!"
     Write-Log "[INFO] Dashboard: http://${detectedIP}:5000"
-    Write-Log "[INFO] API: http://${detectedIP}:8090"
-    Write-Log "[INFO] Worker Setup: http://${detectedIP}:8090/worker/setup"
+    Write-Log "[INFO] API: http://${detectedIP}:8091"
+    Write-Log "[INFO] Worker Setup: http://${detectedIP}:8091/worker/setup"
 
     [System.Windows.Forms.MessageBox]::Show(
-        "Worker Manager is running!`n`nAccess points:`n- Dashboard: http://${detectedIP}:5000`n- API: http://${detectedIP}:8090`n- Worker Setup: http://${detectedIP}:8090/worker/setup`n`nInstallation directory: $installDir`n`nLog file: $logFile",
+        "Worker Manager is running!`n`nAccess points:`n- Dashboard: http://${detectedIP}:5000`n- API: http://${detectedIP}:8091`n- Worker Setup: http://${detectedIP}:8091/worker/setup`n`nInstallation directory: $installDir`n`nLog file: $logFile",
         'Success',
         'OK',
         'Information'

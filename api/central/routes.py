@@ -448,7 +448,7 @@ async def generate_central_qr(
         if server_host == 'auto' or not server_host or server_host == 'localhost':
             server_host = LOCAL_SERVER_IP
         
-        server_url = f"http://{server_host}:8090"
+        server_url = f"http://{server_host}:8091"
         install_url = f"{server_url}/central/install/{token}"
         
         # QR 코드 생성

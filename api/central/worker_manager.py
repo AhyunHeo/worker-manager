@@ -28,7 +28,7 @@ services:
       - NET_RAW
     environment:
       - DATABASE_URL=$${DATABASE_URL:-postgresql://worker:workerpass@postgres:5432/workerdb}
-      - API_PORT=8090
+      - API_PORT=8091
       - API_TOKEN=$${API_TOKEN:-test-token-123}
       - LOCAL_SERVER_IP=$${LOCAL_SERVER_IP}
       - CENTRAL_SERVER_URL=$${CENTRAL_SERVER_URL}
@@ -36,7 +36,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "0.0.0.0:8090:8090"
+      - "0.0.0.0:8091:8091"
     depends_on:
       - postgres
     restart: unless-stopped
@@ -64,7 +64,7 @@ services:
     image: heoaa/worker-manager-dashboard:latest
     container_name: worker-dashboard
     environment:
-      - API_URL=http://worker-api:8090
+      - API_URL=http://worker-api:8091
       - API_TOKEN=$${API_TOKEN:-test-token-123}
       - LOCAL_SERVER_IP=$${LOCAL_SERVER_IP}
     ports:
@@ -154,9 +154,9 @@ if !errorlevel! equ 0 (
     echo.
     echo Access points:
     echo   - Web Dashboard:    http://{server_ip}:5000
-    echo   - API Server:       http://{server_ip}:8090
-    echo   - Worker Setup:     http://{server_ip}:8090/worker/setup
-    echo   - Central Setup:    http://{server_ip}:8090/central/setup
+    echo   - API Server:       http://{server_ip}:8091
+    echo   - Worker Setup:     http://{server_ip}:8091/worker/setup
+    echo   - Central Setup:    http://{server_ip}:8091/central/setup
     echo.
     echo Installation directory: !WM_DIR!
     echo.

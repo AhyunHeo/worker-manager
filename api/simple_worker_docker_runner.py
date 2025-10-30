@@ -20,7 +20,7 @@ def generate_simple_worker_runner_wsl(node: Node) -> str:
 
     # 서버 설정
     server_ip = LOCAL_SERVER_IP
-    worker_manager_url = f"http://{server_ip}:8090"
+    worker_manager_url = f"http://{server_ip}:8091"
 
     if metadata.get('central_server_ip'):
         central_ip = metadata.get('central_server_ip')
@@ -488,7 +488,7 @@ def generate_simple_worker_runner(node: Node) -> str:
     # API 서버 주소 (실제 호스트)
     # Worker Manager 서버 주소 - 호스트의 실제 IP 사용
     server_ip = LOCAL_SERVER_IP
-    worker_manager_url = f"http://{server_ip}:8090"
+    worker_manager_url = f"http://{server_ip}:8091"
     # 중앙서버 설정
     # metadata에 central_server_ip가 있으면 사용, 없으면 URL에서 추출
     if metadata.get('central_server_ip'):

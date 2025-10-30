@@ -108,9 +108,9 @@ if ($LASTEXITCODE -eq 0 -or $d) {
     Write-Host ""
     Write-Host "접속 주소:" -ForegroundColor White
     Write-Host "  Web Dashboard:    http://${LAN_IP}:5000" -ForegroundColor Cyan
-    Write-Host "  API Server:       http://${LAN_IP}:8090" -ForegroundColor Cyan
-    Write-Host "  Worker Setup:     http://${LAN_IP}:8090/worker/setup" -ForegroundColor Cyan
-    Write-Host "  Central Setup:    http://${LAN_IP}:8090/central/setup" -ForegroundColor Cyan
+    Write-Host "  API Server:       http://${LAN_IP}:8091" -ForegroundColor Cyan
+    Write-Host "  Worker Setup:     http://${LAN_IP}:8091/worker/setup" -ForegroundColor Cyan
+    Write-Host "  Central Setup:    http://${LAN_IP}:8091/central/setup" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "유용한 명령어:" -ForegroundColor Yellow
     Write-Host "  로그 확인:  docker-compose logs -f" -ForegroundColor White

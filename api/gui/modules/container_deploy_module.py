@@ -113,7 +113,7 @@ def get_container_deploy_function(node_id: str, worker_ip: str, central_ip: str,
       # - "52365:52365"     # Ray Dashboard Agent
       # - "52366:52366"     # Ray Dashboard Agent
       # - "52367:52367"     # Ray Runtime Env Agent
-      - "8090:8090"       # Ray Metrics Export
+      - "8090:8091"       # Ray Metrics Export
       - "29500-29509:29500-29509"  # DDP TCPStore
       - "29510:29510"     # NCCL Socket
       - "11000-11049:11000-11049"  # Ray Worker Ports

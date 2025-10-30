@@ -19,9 +19,9 @@ CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://192.168.0.88:8000')
 
 # API configuration
 # 내부 API URL (서버 간 통신용)
-API_URL_INTERNAL = os.getenv('API_URL', 'http://vpn-api:8090')
+API_URL_INTERNAL = os.getenv('API_URL', 'http://vpn-api:8091')
 # 외부 API URL (브라우저 접근용)
-API_URL = f"http://{LOCAL_SERVER_IP}:8090"
+API_URL = f"http://{LOCAL_SERVER_IP}:8091"
 API_TOKEN = os.getenv('API_TOKEN', 'test-token-123')
 
 # HTML Template
@@ -474,7 +474,7 @@ DASHBOARD_TEMPLATE = """
                         </div>
                         <div class="info-item">
                             <span class="info-label">API Port</span>
-                            <span class="info-value">8090</span>
+                            <span class="info-value">8091</span>
                         </div>
                     </div>
                 </div>
@@ -1023,7 +1023,7 @@ def index():
                 Worker Manager
             </div>
             <div class="nav-links">
-                <a href="http://{LOCAL_SERVER_IP}:8090/central/setup">🌐 중앙서버</a>
+                <a href="http://{LOCAL_SERVER_IP}:8091/central/setup">🌐 중앙서버</a>
                 <a href="/worker/setup">⚙️ 워커노드</a>
             </div>
         </nav>
@@ -1041,7 +1041,7 @@ def index():
                     • 워커 관리 및 모니터링
                 </p>
                 <div class="card-links">
-                    <a href="http://{LOCAL_SERVER_IP}:8090/central/setup" class="btn btn-secondary">중앙서버 설정</a>
+                    <a href="http://{LOCAL_SERVER_IP}:8091/central/setup" class="btn btn-secondary">중앙서버 설정</a>
                 </div>
             </div>
 
@@ -1367,8 +1367,8 @@ def generate_deployment():
         # Generate a unique token
         token = secrets.token_hex(16)
         
-        # Use the correct API server URL (port 8090)
-        api_url = f"http://{LOCAL_SERVER_IP}:8090"
+        # Use the correct API server URL (port 8091)
+        api_url = f"http://{LOCAL_SERVER_IP}:8091"
         
         # Install URL for auto-installer
         install_url = f"{api_url}/install/{token}"

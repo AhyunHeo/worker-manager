@@ -13,7 +13,7 @@ Write-Host "포트 포워딩 및 방화벽 규칙 설정 중..." -ForegroundColo
 
 # 필요한 포트 정의 (VPN 제거, Worker Manager 서비스만)
 $ports = @(
-    @{Name="Worker-API"; Port=8090; Protocol="TCP"; Description="Worker Manager API Server"},
+    @{Name="Worker-API"; Port=8091; Protocol="TCP"; Description="Worker Manager API Server"},
     @{Name="Worker-Dashboard"; Port=5000; Protocol="TCP"; Description="Worker Manager Web Dashboard"}
 )
 
