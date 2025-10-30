@@ -10,8 +10,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
-ENV API_URL=http://worker-api:8091
-ENV API_TOKEN=test-token-123
+# Environment variables (set via docker-compose or runtime)
+# ENV API_URL - set at runtime
+# ENV API_TOKEN - set at runtime
 
 EXPOSE 5000
 
