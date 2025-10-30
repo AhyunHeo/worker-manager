@@ -921,8 +921,8 @@ async def worker_install_page(token: str, db: Session = Depends(get_db)):
                             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
                         " onmouseover="this.style.background='#f5f5f5'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)';" 
                            onmouseout="this.style.background='white'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.1)';">
-                            🚀 통합 설치 프로그램 (VPN + Docker 한번에)
-                            <div style="font-size: 12px; margin-top: 5px; color: #666;">VPN과 Docker를 자동으로 순차 설치합니다</div>
+                            🚀 워커노드 자동 설치 프로그램
+                            <div style="font-size: 12px; margin-top: 5px; color: #666;">워커노드 등록 시 필요한 패키지를 자동으로 순차 설치합니다</div>
                         </button>
                     </div>
                     
