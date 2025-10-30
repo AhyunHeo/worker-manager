@@ -34,6 +34,9 @@ function Install-DockerRunner {{
         $global:WORKER_IP = '{worker_ip}'
         $global:CENTRAL_IP = '{central_ip}'
         $global:SERVER_IP = '{server_ip}'
+
+        # VPN 제거 후에도 변수명 일관성을 위해 WORKER_IP 별칭 추가
+        $global:VPN_IP = $global:WORKER_IP  # 기존 코드 호환성
         
         # 모든 모듈 함수 로드
         {wsl_setup}
