@@ -513,7 +513,41 @@ sudo usermod -aG docker $USER
         }}
         
         Update-Progress '✓ Docker 준비 완료' 70
-        
+
+        # ============================================
+        # Step 3.5: 포트 포워딩 설정 (Worker IP → WSL2 IP)
+        # ============================================
+        Update-Progress 'Step 3.5/5: 포트 포워딩 설정 중...' 72
+
+        Write-Host "[INFO] Setting up port forwarding from Worker IP to WSL2..."
+
+        # WSL2 IP 주소 가져오기
+        Write-Host "[DEBUG] Getting WSL2 IP address for distro: $distroName"
+        $wslIPResult = Get-WSL2IPAddress -DistroName $distroName
+
+        if ($wslIPResult.Success) {{
+            $wslIP = $wslIPResult.IPAddress
+            Write-Host "[SUCCESS] WSL2 IP address: $wslIP"
+
+            # 포트 포워딩 설정
+            Write-Host "[DEBUG] Setting up port forwarding: $global:WORKER_IP -> $wslIP"
+            $portForwardResult = Setup-PortForwarding -WorkerIP $global:WORKER_IP -WslIP $wslIP
+
+            if ($portForwardResult.Success) {{
+                Write-Host "[SUCCESS] Port forwarding configured successfully"
+                Write-Host "[INFO] Total forwarding rules: $($portForwardResult.TotalActive)"
+                Update-Progress '✓ 포트 포워딩 설정 완료' 74
+            }} else {{
+                Write-Host "[WARNING] Port forwarding setup failed: $($portForwardResult.Message)"
+                Write-Host "[INFO] Continuing without port forwarding..."
+                Update-Progress '⚠ 포트 포워딩 설정 실패 (계속 진행)' 74
+            }}
+        }} else {{
+            Write-Host "[WARNING] Could not get WSL2 IP: $($wslIPResult.Message)"
+            Write-Host "[INFO] Skipping port forwarding setup..."
+            Update-Progress '⚠ WSL2 IP 감지 실패 (포트 포워딩 건너뜀)' 74
+        }}
+
         # ============================================
         # Step 4: NVIDIA Container Toolkit 설치 (GPU 지원)
         # ============================================
