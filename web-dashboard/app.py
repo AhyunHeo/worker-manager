@@ -1441,9 +1441,9 @@ def worker_proxy(path):
         # API URL 구성 - 내부 통신용 URL 사용
         url = f"{API_URL_INTERNAL}/worker/{path}"
 
-        # 요청 전달
+        # 요청 전달 (stream=True로 파일 다운로드 지원)
         if request.method == 'GET':
-            response = requests.get(url, headers=headers, params=request.args, timeout=10)
+            response = requests.get(url, headers=headers, params=request.args, timeout=10, stream=True)
         elif request.method == 'POST':
             if request.is_json:
                 response = requests.post(url, headers=headers, json=request.get_json(), timeout=10)
@@ -1457,6 +1457,20 @@ def worker_proxy(path):
         # HTML 응답 처리
         if 'text/html' in response.headers.get('Content-Type', ''):
             return response.text, response.status_code
+
+        # 파일 다운로드 응답 처리 (application/octet-stream, application/x-exe 등)
+        content_type = response.headers.get('Content-Type', '')
+        if 'application/' in content_type and 'json' not in content_type:
+            from flask import Response
+            flask_response = Response(
+                response.content,
+                status=response.status_code,
+                content_type=content_type
+            )
+            # Content-Disposition 헤더 복사 (파일명 포함)
+            if 'Content-Disposition' in response.headers:
+                flask_response.headers['Content-Disposition'] = response.headers['Content-Disposition']
+            return flask_response
 
         # JSON 응답 처리
         try:
@@ -1482,9 +1496,9 @@ def central_proxy(path):
         # API URL 구성 - 내부 통신용 URL 사용
         url = f"{API_URL_INTERNAL}/central/{path}"
 
-        # 요청 전달
+        # 요청 전달 (stream=True로 파일 다운로드 지원)
         if request.method == 'GET':
-            response = requests.get(url, headers=headers, params=request.args, timeout=10)
+            response = requests.get(url, headers=headers, params=request.args, timeout=10, stream=True)
         elif request.method == 'POST':
             if request.is_json:
                 response = requests.post(url, headers=headers, json=request.get_json(), timeout=10)
@@ -1498,6 +1512,20 @@ def central_proxy(path):
         # HTML 응답 처리
         if 'text/html' in response.headers.get('Content-Type', ''):
             return response.text, response.status_code
+
+        # 파일 다운로드 응답 처리 (application/octet-stream, application/x-bat 등)
+        content_type = response.headers.get('Content-Type', '')
+        if 'application/' in content_type and 'json' not in content_type:
+            from flask import Response
+            flask_response = Response(
+                response.content,
+                status=response.status_code,
+                content_type=content_type
+            )
+            # Content-Disposition 헤더 복사 (파일명 포함)
+            if 'Content-Disposition' in response.headers:
+                flask_response.headers['Content-Disposition'] = response.headers['Content-Disposition']
+            return flask_response
 
         # JSON 응답 처리
         try:
