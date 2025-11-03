@@ -1023,7 +1023,7 @@ def index():
                 Worker Manager
             </div>
             <div class="nav-links">
-                <a href="http://{LOCAL_SERVER_IP}:8091/central/setup">🌐 중앙서버</a>
+                <a href="/central/setup">🌐 중앙서버</a>
                 <a href="/worker/setup">⚙️ 워커노드</a>
             </div>
         </nav>
@@ -1041,7 +1041,7 @@ def index():
                     • 워커 관리 및 모니터링
                 </p>
                 <div class="card-links">
-                    <a href="http://{LOCAL_SERVER_IP}:8091/central/setup" class="btn btn-secondary">중앙서버 설정</a>
+                    <a href="/central/setup" class="btn btn-secondary">중앙서버 설정</a>
                 </div>
             </div>
 
@@ -1120,7 +1120,7 @@ def index():
 </body>
 </html>
     """
-    return landing_html
+    return landing_html.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
 
 @app.route('/api/nodes')
 def get_nodes():
@@ -1433,14 +1433,14 @@ def worker_proxy(path):
         headers = {
             'Authorization': request.headers.get('Authorization', f'Bearer {API_TOKEN}')
         }
-        
+
         # Content-Type 확인
         if request.content_type:
             headers['Content-Type'] = request.content_type
-        
+
         # API URL 구성 - 내부 통신용 URL 사용
         url = f"{API_URL_INTERNAL}/worker/{path}"
-        
+
         # 요청 전달
         if request.method == 'GET':
             response = requests.get(url, headers=headers, params=request.args, timeout=10)
@@ -1453,11 +1453,52 @@ def worker_proxy(path):
             response = requests.put(url, headers=headers, json=request.get_json(), timeout=10)
         elif request.method == 'DELETE':
             response = requests.delete(url, headers=headers, timeout=10)
-        
+
         # HTML 응답 처리
         if 'text/html' in response.headers.get('Content-Type', ''):
             return response.text, response.status_code
-        
+
+        # JSON 응답 처리
+        try:
+            return response.json(), response.status_code
+        except:
+            return response.text, response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/central/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+def central_proxy(path):
+    """Central 요청을 백엔드로 프록시"""
+    try:
+        # 헤더 전달
+        headers = {
+            'Authorization': request.headers.get('Authorization', f'Bearer {API_TOKEN}')
+        }
+
+        # Content-Type 확인
+        if request.content_type:
+            headers['Content-Type'] = request.content_type
+
+        # API URL 구성 - 내부 통신용 URL 사용
+        url = f"{API_URL_INTERNAL}/central/{path}"
+
+        # 요청 전달
+        if request.method == 'GET':
+            response = requests.get(url, headers=headers, params=request.args, timeout=10)
+        elif request.method == 'POST':
+            if request.is_json:
+                response = requests.post(url, headers=headers, json=request.get_json(), timeout=10)
+            else:
+                response = requests.post(url, headers=headers, data=request.data, timeout=10)
+        elif request.method == 'PUT':
+            response = requests.put(url, headers=headers, json=request.get_json(), timeout=10)
+        elif request.method == 'DELETE':
+            response = requests.delete(url, headers=headers, timeout=10)
+
+        # HTML 응답 처리
+        if 'text/html' in response.headers.get('Content-Type', ''):
+            return response.text, response.status_code
+
         # JSON 응답 처리
         try:
             return response.json(), response.status_code
