@@ -461,29 +461,25 @@ while ($form.Visible) {{
     ps_bytes = ps_script.encode('utf-16le')
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
     
-    # BAT 파일 (터미널 창 최소화)
+    # BAT 파일 - 관리자 권한으로 PowerShell 직접 실행
     batch_script = f"""@echo off
 chcp 65001 >nul 2>&1
-setlocal enabledelayedexpansion
-
-REM Minimize current window
-if not DEFINED IS_MINIMIZED (
-    set IS_MINIMIZED=1
-    start /min cmd /c "%~dpnx0" %*
-    exit /b
-)
 
 REM Check for administrator privileges
 net session >nul 2>&1
-if !errorLevel! neq 0 (
-    REM Request admin privileges with minimized window
-    powershell.exe -NoProfile -Command "Start-Process cmd -ArgumentList '/min', '/c', '%~dpnx0' -Verb RunAs"
-    exit /b
+if %errorLevel% == 0 (
+    REM Already running as admin - execute PowerShell
+    echo [INFO] Running with administrator privileges...
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}
+    goto :end
+) else (
+    REM Request admin privileges and run PowerShell directly
+    echo [INFO] Requesting administrator privileges...
+    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}' -Verb RunAs"
+    goto :end
 )
 
-REM Run PowerShell script with Base64 encoding (minimized)
-"%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -WindowStyle Minimized -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand {ps_base64}
-
+:end
 exit /b
 """
     
