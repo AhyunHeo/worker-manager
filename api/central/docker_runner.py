@@ -174,43 +174,60 @@ try {{
     }}
 
     # WSL IP 가져오기
-    $statusLabel.Text = 'Detecting WSL IP...'
+    $statusLabel.Text = 'Detecting WSL IP address...'
     $progressBar.Value = 52
     [System.Windows.Forms.Application]::DoEvents()
 
     try {{
-        $wslIP = (wsl hostname -I).Trim().Split()[0]
-        if (-not $wslIP) {{
-            throw "WSL IP not detected"
+        $wslOutput = wsl hostname -I 2>&1
+        if ($LASTEXITCODE -ne 0) {{
+            throw "WSL not running or not installed"
+        }}
+        $wslIP = $wslOutput.Trim().Split()[0]
+        if (-not $wslIP -or $wslIP -eq "") {{
+            throw "Failed to detect WSL IP address"
         }}
     }} catch {{
-        # WSL이 없는 경우 localhost 사용
-        $wslIP = "127.0.0.1"
+        $statusLabel.Text = "Error: WSL IP detection failed"
+        throw "WSL이 실행되고 있지 않거나 설치되지 않았습니다. WSL을 실행한 후 다시 시도해주세요.`n`n오류: $_"
     }}
 
     # 주요 포트 목록 (중앙서버 + Worker Manager)
     $ports = @(3000, 8000, 5002, 5000, 8091, 5432, 27017)
 
     # 기존 포트포워딩 규칙 삭제
-    $statusLabel.Text = 'Configuring port forwarding...'
+    $statusLabel.Text = 'Removing old port forwarding rules...'
     $progressBar.Value = 54
     [System.Windows.Forms.Application]::DoEvents()
 
     foreach ($port in $ports) {{
-        netsh interface portproxy delete v4tov4 listenaddress={local_ip} listenport=$port 2>$null | Out-Null
         netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=$port 2>$null | Out-Null
+        netsh interface portproxy delete v4tov4 listenaddress={local_ip} listenport=$port 2>$null | Out-Null
     }}
 
     # 새로운 포트포워딩 규칙 추가
+    $statusLabel.Text = 'Adding port forwarding rules...'
+    $progressBar.Value = 55
+    [System.Windows.Forms.Application]::DoEvents()
+
+    $portForwardSuccess = 0
     foreach ($port in $ports) {{
-        netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$port connectaddress=$wslIP connectport=$port 2>$null | Out-Null
+        $result = netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$port connectaddress=$wslIP connectport=$port 2>&1
+        if ($LASTEXITCODE -eq 0) {{
+            $portForwardSuccess++
+        }}
+    }}
+
+    if ($portForwardSuccess -eq 0) {{
+        throw "포트포워딩 규칙 추가에 실패했습니다. 관리자 권한으로 실행되고 있는지 확인하세요."
     }}
 
     # 방화벽 규칙 추가 (인바운드)
     $statusLabel.Text = 'Configuring firewall rules...'
-    $progressBar.Value = 56
+    $progressBar.Value = 57
     [System.Windows.Forms.Application]::DoEvents()
 
+    $firewallSuccess = 0
     foreach ($port in $ports) {{
         $ruleName = "Central-Server-Port-$port"
 
@@ -218,7 +235,14 @@ try {{
         netsh advfirewall firewall delete rule name="$ruleName" 2>$null | Out-Null
 
         # 새 규칙 추가
-        netsh advfirewall firewall add rule name="$ruleName" dir=in action=allow protocol=TCP localport=$port 2>$null | Out-Null
+        $result = netsh advfirewall firewall add rule name="$ruleName" dir=in action=allow protocol=TCP localport=$port 2>&1
+        if ($LASTEXITCODE -eq 0) {{
+            $firewallSuccess++
+        }}
+    }}
+
+    if ($firewallSuccess -eq 0) {{
+        throw "방화벽 규칙 추가에 실패했습니다. 관리자 권한으로 실행되고 있는지 확인하세요."
     }}
 
     # 작업 디렉토리 생성
@@ -399,7 +423,16 @@ WS_MESSAGE_QUEUE_SIZE=100
     $statusLabel.Text = 'Central server started successfully!'
 
     [System.Windows.Forms.MessageBox]::Show(
-        "Central server is running!`n`nAccess URLs:`n- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}`n- API: http://{local_ip}:{metadata.get('api_port', 8000)}`n- FL Server: http://{local_ip}:{metadata.get('fl_port', 5002)}`n`nPort forwarding and firewall rules have been configured for ports: 3000, 8000, 5002, 5000, 8091, 5432, 27017",
+        "🎉 Central Server Started Successfully!`n`n" +
+        "📡 Access URLs:`n" +
+        "- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}`n" +
+        "- API: http://{local_ip}:{metadata.get('api_port', 8000)}`n" +
+        "- FL Server: http://{local_ip}:{metadata.get('fl_port', 5002)}`n`n" +
+        "🔧 Network Configuration:`n" +
+        "- WSL IP: $wslIP`n" +
+        "- Port Forwarding: $portForwardSuccess/$($ports.Count) ports configured`n" +
+        "- Firewall Rules: $firewallSuccess/$($ports.Count) rules added`n`n" +
+        "✅ Configured Ports: 3000, 8000, 5002, 5000, 8091, 5432, 27017",
         'Success',
         'OK',
         'Information'
