@@ -154,9 +154,9 @@ if !errorlevel! equ 0 (
     echo.
     echo Access points:
     echo   - Web Dashboard:    http://{server_ip}:5000
-    echo   - API Server:       http://{server_ip}:8091
-    echo   - Worker Setup:     http://{server_ip}:8091/worker/setup
-    echo   - Central Setup:    http://{server_ip}:8091/central/setup
+    echo   - Dashboard:        http://{server_ip}:5000
+    echo   - Worker Setup:     http://{server_ip}:5000/worker/setup
+    echo   - Central Setup:    http://{server_ip}:5000/central/setup
     echo.
     echo Installation directory: !WM_DIR!
     echo.

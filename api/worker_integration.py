@@ -382,7 +382,7 @@ async def api_worker_setup(
             if server_host == 'auto' or not server_host or server_host == 'localhost':
                 server_host = LOCAL_SERVER_IP
 
-            download_url = f"http://{server_host}:8091/api/download/{existing.node_id}/setup-gui"
+            download_url = f"http://{server_host}:5000/api/download/{existing.node_id}/setup-gui"
 
             return {
                 "node_id": existing.node_id,
@@ -445,7 +445,7 @@ async def api_worker_setup(
             if server_host == 'auto' or not server_host or server_host == 'localhost':
                 server_host = LOCAL_SERVER_IP
 
-            download_url = f"http://{server_host}:8091/api/download/{request.node_id}/setup-gui"
+            download_url = f"http://{server_host}:5000/api/download/{request.node_id}/setup-gui"
 
             return {
                 "node_id": request.node_id,
@@ -571,7 +571,7 @@ async def generate_worker_qr(
             # LOCAL_SERVER_IP 사용 (우선순위)
             server_host = LOCAL_SERVER_IP
         
-        server_url = f"http://{server_host}:8091"
+        server_url = f"http://{server_host}:5000"
         install_url = f"{server_url}/worker/install/{token}"
         
         # QR 코드 생성
