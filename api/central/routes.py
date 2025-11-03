@@ -485,8 +485,8 @@ async def get_docker_runner(node_id: str, db: Session = Depends(get_db)):
     # Docker Runner 생성
     docker_runner = generate_central_docker_runner(node)
     
-    # Create a temporary file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False, encoding='ascii') as tmp_file:
+    # Create a temporary file with proper encoding for Windows batch files
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False, encoding='utf-8-sig', newline='\r\n') as tmp_file:
         tmp_file.write(docker_runner)
         temp_path = tmp_file.name
     
