@@ -26,24 +26,6 @@ def generate_central_docker_runner(node: Node) -> str:
     
     # PowerShell 스크립트
     ps_script = f'''
-# 관리자 권한 확인 및 재시작
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-if (-not $isAdmin) {{
-    try {{
-        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-        exit
-    }} catch {{
-        [System.Windows.Forms.MessageBox]::Show(
-            "관리자 권한이 필요합니다.`n`n우클릭 > '관리자 권한으로 실행'을 선택해주세요.",
-            'Administrator Required',
-            'OK',
-            'Warning'
-        )
-        exit 1
-    }}
-}}
-
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -482,22 +464,50 @@ while ($form.Visible) {{
     # BAT 파일 - Base64 인코딩된 명령 실행
     batch_script = f"""@echo off
 chcp 65001 >nul 2>&1
+setlocal enabledelayedexpansion
 
 echo =========================================
 echo Central Server Docker Runner
 echo =========================================
 echo.
 
+REM Create log file in Downloads folder
+set "LOG_FILE=%USERPROFILE%\\Downloads\\central-install-debug.log"
+echo [%date% %time%] Installation started > "%LOG_FILE%"
+
 REM Check for administrator privileges
+echo [INFO] Checking administrator privileges...
+echo [%date% %time%] Checking admin rights >> "%LOG_FILE%"
+
 net session >nul 2>&1
 if %errorLevel% == 0 (
     REM Already running as admin - execute PowerShell
     echo [INFO] Running with administrator privileges...
+    echo [%date% %time%] Running as admin >> "%LOG_FILE%"
+
     powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}
+    set "PS_EXIT=%errorLevel%"
+    echo [%date% %time%] PowerShell exit code: %PS_EXIT% >> "%LOG_FILE%"
+
+    if !PS_EXIT! neq 0 (
+        echo.
+        echo [ERROR] Installation failed with code !PS_EXIT!
+        echo [ERROR] Check log: %LOG_FILE%
+        echo.
+        pause
+    )
 ) else (
     REM Request admin privileges and wait for completion
     echo [INFO] Requesting administrator privileges...
+    echo [%date% %time%] Requesting UAC elevation >> "%LOG_FILE%"
+
     powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}' -Verb RunAs -Wait"
+
+    echo [%date% %time%] UAC process completed >> "%LOG_FILE%"
+    echo.
+    echo [INFO] Installation process completed
+    echo [INFO] Check log file: %LOG_FILE%
+    pause
 )
 
 exit /b

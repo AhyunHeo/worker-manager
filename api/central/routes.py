@@ -229,38 +229,40 @@ async def central_setup_page():
                 </div>
                 
                 <input type="hidden" id="node_id" name="node_id" value="central-server-01">
-                
+
+                <!-- 고급 설정 (포트 구성) - 현재 사용 안 함
                 <div class="advanced-toggle" onclick="toggleAdvanced()">
                     ⚙️ 고급 설정 (포트 구성)
                 </div>
-                
+
                 <div class="advanced-settings" id="advancedSettings">
                     <div class="port-group">
                         <div class="form-group">
                             <label for="api_port">API 포트</label>
-                            <input type="number" id="api_port" name="api_port" 
+                            <input type="number" id="api_port" name="api_port"
                                    value="8000" min="1" max="65535">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="fl_port">FL 서버 포트</label>
-                            <input type="number" id="fl_port" name="fl_port" 
+                            <input type="number" id="fl_port" name="fl_port"
                                    value="5002" min="1" max="65535">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="dashboard_port">대시보드 포트</label>
-                            <input type="number" id="dashboard_port" name="dashboard_port" 
+                            <input type="number" id="dashboard_port" name="dashboard_port"
                                    value="5000" min="1" max="65535">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="db_port">DB 포트</label>
-                            <input type="number" id="db_port" name="db_port" 
+                            <input type="number" id="db_port" name="db_port"
                                    value="5432" min="1" max="65535">
                         </div>
                     </div>
                 </div>
+                -->
                 
                 <button type="submit" class="btn">QR 코드 생성</button>
             </form>
