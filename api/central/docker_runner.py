@@ -26,8 +26,21 @@ def generate_central_docker_runner(node: Node) -> str:
     
     # PowerShell 스크립트
     ps_script = f'''
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+# Error logging
+$ErrorActionPreference = "Continue"
+$LogFile = "$env:USERPROFILE\\Downloads\\central-ps-error.log"
+Start-Transcript -Path $LogFile -Append
+
+try {{
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+}} catch {{
+    Write-Host "Error loading assemblies: $_"
+    Stop-Transcript
+    [System.Console]::WriteLine("Error: $_")
+    Read-Host "Press Enter to exit"
+    exit 1
+}}
 
 # 프로그레스 폼 생성
 $form = New-Object System.Windows.Forms.Form
@@ -441,11 +454,12 @@ WS_MESSAGE_QUEUE_SIZE=100
 }} catch {{
     $statusLabel.Text = "Error: $_"
     [System.Windows.Forms.MessageBox]::Show(
-        "An error occurred:`n`n$_",
+        "An error occurred:`n`n$_`n`nCheck log: $LogFile",
         'Error',
         'OK',
         'Error'
     )
+    Write-Host "Error in main try block: $_"
 }} finally {{
     $closeButton.Enabled = $true
 }}
@@ -455,6 +469,9 @@ while ($form.Visible) {{
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 100
 }}
+
+Stop-Transcript
+Write-Host "Installation completed. Log saved to: $LogFile"
 '''
 
     # Base64 인코딩 및 64자씩 나누기 (certutil 형식)
@@ -511,8 +528,12 @@ net session >nul 2>&1
 if %errorLevel% == 0 (
     REM Already running as admin - execute PowerShell
     echo [INFO] Running with administrator privileges...
+    echo [INFO] Executing PowerShell script...
+
     powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TEMP_PS1%"
     set "PS_EXIT=!errorLevel!"
+
+    echo [INFO] PowerShell exited with code: !PS_EXIT!
 
     REM Cleanup
     del "%TEMP_PS1%" 2>nul
@@ -520,19 +541,34 @@ if %errorLevel% == 0 (
     if !PS_EXIT! neq 0 (
         echo.
         echo [ERROR] Installation failed with exit code !PS_EXIT!
+        echo [ERROR] Check error log: %USERPROFILE%\\Downloads\\central-ps-error.log
         echo.
         pause
+    ) else (
+        echo.
+        echo [SUCCESS] Installation completed successfully!
+        echo [INFO] Check log: %USERPROFILE%\\Downloads\\central-ps-error.log
+        echo.
+        timeout /t 5
     )
 ) else (
     REM Request admin privileges
     echo [INFO] Requesting administrator privileges...
     echo [INFO] Please click 'Yes' on the UAC prompt...
+    echo.
 
     powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',\"%TEMP_PS1%\" -Verb RunAs -Wait"
 
+    echo.
+    echo [INFO] PowerShell window closed.
+    echo [INFO] Check error log if installation failed: %USERPROFILE%\\Downloads\\central-ps-error.log
+    echo.
+
     REM Cleanup
-    timeout /t 2 >nul
+    timeout /t 3 >nul
     del "%TEMP_PS1%" 2>nul
+
+    pause
 )
 
 exit /b
