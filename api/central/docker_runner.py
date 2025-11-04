@@ -26,6 +26,24 @@ def generate_central_docker_runner(node: Node) -> str:
     
     # PowerShell 스크립트
     ps_script = f'''
+# 관리자 권한 확인 및 재시작
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $isAdmin) {{
+    try {{
+        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+        exit
+    }} catch {{
+        [System.Windows.Forms.MessageBox]::Show(
+            "관리자 권한이 필요합니다.`n`n우클릭 > '관리자 권한으로 실행'을 선택해주세요.",
+            'Administrator Required',
+            'OK',
+            'Warning'
+        )
+        exit 1
+    }}
+}}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -457,78 +475,31 @@ while ($form.Visible) {{
 }}
 '''
 
-    # PowerShell 스크립트를 Base64로 인코딩 (UTF-16LE는 PowerShell의 표준)
+    # PowerShell 스크립트를 Base64로 인코딩 (안정적인 방법)
     ps_bytes = ps_script.encode('utf-16le')
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
-    
-    # BAT 파일 - 로그 추가 및 디버깅 가능
+
+    # BAT 파일 - Base64 인코딩된 명령 실행
     batch_script = f"""@echo off
 chcp 65001 >nul 2>&1
-setlocal enabledelayedexpansion
 
-REM Create log file
-set "LOG_FILE=%USERPROFILE%\\Downloads\\central-server-install.log"
-echo ========================================= > "%LOG_FILE%"
-echo Central Server Installation Log >> "%LOG_FILE%"
-echo Time: %date% %time% >> "%LOG_FILE%"
-echo ========================================= >> "%LOG_FILE%"
-echo. >> "%LOG_FILE%"
-
-echo [INFO] Starting Central Server installation...
-echo [INFO] Log file: %LOG_FILE%
-echo [INFO] Starting installation... >> "%LOG_FILE%"
+echo =========================================
+echo Central Server Docker Runner
+echo =========================================
+echo.
 
 REM Check for administrator privileges
-echo [INFO] Checking administrator privileges... >> "%LOG_FILE%"
 net session >nul 2>&1
 if %errorLevel% == 0 (
     REM Already running as admin - execute PowerShell
-    echo [OK] Running with administrator privileges >> "%LOG_FILE%"
     echo [INFO] Running with administrator privileges...
-    echo [INFO] Executing PowerShell script... >> "%LOG_FILE%"
-
     powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}
-    set "PS_EXIT_CODE=!errorLevel!"
-
-    echo [INFO] PowerShell exit code: !PS_EXIT_CODE! >> "%LOG_FILE%"
-
-    if !PS_EXIT_CODE! neq 0 (
-        echo [ERROR] Installation failed with exit code !PS_EXIT_CODE! >> "%LOG_FILE%"
-        echo.
-        echo [ERROR] Installation failed! Check log file: %LOG_FILE%
-        echo.
-        pause
-    ) else (
-        echo [OK] Installation completed successfully >> "%LOG_FILE%"
-        echo [INFO] Installation completed! Check log: %LOG_FILE%
-    )
-    goto :end
 ) else (
-    REM Request admin privileges
-    echo [WARN] Not running as administrator >> "%LOG_FILE%"
+    REM Request admin privileges and wait for completion
     echo [INFO] Requesting administrator privileges...
-    echo [INFO] Requesting administrator privileges... >> "%LOG_FILE%"
-
-    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}' -Verb RunAs"
-
-    if !errorLevel! neq 0 (
-        echo [ERROR] Failed to request administrator privileges >> "%LOG_FILE%"
-        echo.
-        echo [ERROR] Failed to request administrator privileges!
-        echo [ERROR] Please run this script as administrator manually.
-        echo.
-        pause
-    ) else (
-        echo [OK] Administrator privilege request sent >> "%LOG_FILE%"
-    )
-    goto :end
+    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}' -Verb RunAs -Wait"
 )
 
-:end
-echo. >> "%LOG_FILE%"
-echo ========================================= >> "%LOG_FILE%"
-echo Installation script ended >> "%LOG_FILE%"
-echo ========================================= >> "%LOG_FILE%"
 exit /b
 """
     
