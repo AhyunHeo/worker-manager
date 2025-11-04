@@ -474,8 +474,8 @@ Stop-Transcript
 Write-Host "Installation completed. Log saved to: $LogFile"
 '''
 
-    # Base64 인코딩 및 64자씩 나누기 (certutil 형식)
-    ps_bytes = ps_script.encode('utf-16le')
+    # Base64 인코딩 - UTF-8 사용 (certutil 호환성 향상)
+    ps_bytes = ps_script.encode('utf-8')
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
 
     # Base64를 64자씩 나눔 (certutil 표준 형식)
