@@ -53,7 +53,7 @@ $form.MinimizeBox = $false
 
 # 타이틀 라벨
 $titleLabel = New-Object System.Windows.Forms.Label
-$titleLabel.Text = '🐳 Central Server Docker Runner'
+$titleLabel.Text = 'Central Server Docker Runner'
 $titleLabel.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
 $titleLabel.Location = New-Object System.Drawing.Point(20, 20)
 $titleLabel.Size = New-Object System.Drawing.Size(460, 30)
@@ -286,7 +286,7 @@ services:
     image: heoaa/central-server:latest
     container_name: central-server-api-prod
     ports:
-      - "{metadata.get('api_port', 8000)}:8000"
+      - "0.0.0.0:{metadata.get('api_port', 8000)}:8000"
     volumes:
       - ./config:/app/config:ro
       - ./session_models:/app/session_models
@@ -310,7 +310,7 @@ services:
     image: heoaa/central-server-fl:latest
     container_name: fl-server-api-prod
     ports:
-      - "{metadata.get('fl_port', 5002)}:5002"
+      - "0.0.0.0:{metadata.get('fl_port', 5002)}:5002"
     volumes:
       - ./config:/app/config:ro
       - ./session_models:/app/session_models
@@ -334,7 +334,7 @@ services:
     image: heoaa/central-frontend:latest
     container_name: central-server-frontend
     ports:
-      - "{metadata.get('frontend_port', 3000)}:3000"
+      - "0.0.0.0:{metadata.get('frontend_port', 3000)}:3000"
     environment:
       - API_URL_INTERNAL=http://api:8000
       - FL_API_URL_INTERNAL=http://fl-api:5002
@@ -358,7 +358,7 @@ services:
       TZ: Asia/Seoul
       PGTZ: Asia/Seoul
     ports:
-      - "{metadata.get('db_port', 5432)}:5432"
+      - "0.0.0.0:{metadata.get('db_port', 5432)}:5432"
     volumes:
       - db_data_protected:/var/lib/postgresql/data
     restart: unless-stopped
@@ -369,7 +369,7 @@ services:
     environment:
       TZ: Asia/Seoul
     ports:
-      - "{metadata.get('mongo_port', 27017)}:27017"
+      - "0.0.0.0:{metadata.get('mongo_port', 27017)}:27017"
     volumes:
       - mongo_data_protected:/data/db
     restart: unless-stopped
@@ -522,48 +522,30 @@ if not exist "%TEMP_PS1%" (
 )
 
 REM Check for administrator privileges
-echo [INFO] Checking administrator privileges...
 net session >nul 2>&1
 
 if %errorLevel% == 0 (
-    REM Already running as admin - execute PowerShell
-    echo [INFO] Running with administrator privileges...
-    echo [INFO] Executing PowerShell script...
-    echo [INFO] Script location: %TEMP_PS1%
-
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File "%TEMP_PS1%"
+    REM Already running as admin - execute PowerShell (hidden console, GUI only)
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%TEMP_PS1%"
     set "PS_EXIT=!errorLevel!"
 
-    echo [INFO] PowerShell exited with code: !PS_EXIT!
-    echo [DEBUG] Script preserved at: %TEMP_PS1%
+    REM Cleanup
+    del "%TEMP_PS1%" 2>nul
 
     if !PS_EXIT! neq 0 (
         echo.
         echo [ERROR] Installation failed with exit code !PS_EXIT!
-        echo [ERROR] Script file: %TEMP_PS1%
+        echo [ERROR] Check log: %USERPROFILE%\\Downloads\\central-ps-error.log
         echo.
         pause
-    ) else (
-        echo.
-        echo [SUCCESS] Installation completed successfully!
-        echo.
-        timeout /t 5
     )
 ) else (
-    REM Request admin privileges
-    echo [INFO] Requesting administrator privileges...
-    echo [INFO] Please click 'Yes' on the UAC prompt...
-    echo [DEBUG] Script location: %TEMP_PS1%
-    echo.
+    REM Request admin privileges (hidden console, GUI only)
+    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',\"%TEMP_PS1%\" -Verb RunAs"
 
-    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-NoExit','-File',\"%TEMP_PS1%\" -Verb RunAs"
-
-    echo.
-    echo [INFO] PowerShell window should be open now.
-    echo [INFO] If you see errors, take a screenshot.
-    echo [DEBUG] Script preserved at: %TEMP_PS1%
-    echo.
-    pause
+    REM Cleanup after a delay
+    timeout /t 3 >nul
+    del "%TEMP_PS1%" 2>nul
 )
 
 exit /b

@@ -95,77 +95,51 @@ SECRET_KEY=your-secret-key-here
 LOG_LEVEL=INFO
 """
 
-    # 설치 스크립트
-    script = f"""
+    # 설치 스크립트 - VBScript 래퍼로 숨김 실행
+    script = f"""@echo off
+REM Check if running hidden
+if not "%1"=="HIDDEN" (
+    REM Create VBScript to run hidden
+    echo Set WshShell = CreateObject("WScript.Shell") > "%TEMP%\\run_hidden.vbs"
+    echo WshShell.Run "cmd.exe /c """"%~f0"" HIDDEN""", 0 >> "%TEMP%\\run_hidden.vbs"
+    cscript //nologo "%TEMP%\\run_hidden.vbs"
+    del "%TEMP%\\run_hidden.vbs"
+    exit
+)
+
 REM ============================================
-REM Worker Manager Installation
+REM Worker Manager Installation (Hidden Mode)
 REM ============================================
 
-echo.
-echo ========================================
-echo Installing Worker Manager...
-echo ========================================
-echo.
+setlocal enabledelayedexpansion
 
 REM 작업 디렉토리 생성
 set "WM_DIR=%USERPROFILE%\\worker-manager"
-if not exist "!WM_DIR!" (
-    echo Creating Worker Manager directory...
-    mkdir "!WM_DIR!"
-)
+if not exist "!WM_DIR!" mkdir "!WM_DIR!"
 
 cd /d "!WM_DIR!"
 
 REM docker-compose.yml 생성
-echo Creating docker-compose.yml...
 (
 {docker_compose_yml}
 ) > docker-compose.yml
 
 REM .env 파일 생성
-echo Creating .env file...
 (
 {env_content}
 ) > .env
 
-REM Docker 이미지 pull
-echo.
-echo Pulling Docker images from Docker Hub...
-docker pull heoaa/worker-manager:latest
-docker pull heoaa/worker-manager-dashboard:latest
-docker pull postgres:15
-
-if !errorlevel! neq 0 (
-    echo WARNING: Failed to pull some images
-    echo This might be due to network issues or Docker Hub rate limits
-    echo Continuing with local images if available...
-)
-
-REM Docker Compose 실행
-echo.
-echo Starting Worker Manager services...
-docker-compose up -d
+REM Docker 이미지 pull 및 실행
+docker-compose pull >nul 2>&1
+docker-compose up -d >nul 2>&1
 
 if !errorlevel! equ 0 (
-    echo.
-    echo ========================================
-    echo Worker Manager installed successfully!
-    echo ========================================
-    echo.
-    echo Access points:
-    echo   - Web Dashboard:    http://{server_ip}:5000
-    echo   - Dashboard:        http://{server_ip}:5000
-    echo   - Worker Setup:     http://{server_ip}:5000/worker/setup
-    echo   - Central Setup:    http://{server_ip}:5000/central/setup
-    echo.
-    echo Installation directory: !WM_DIR!
-    echo.
+    powershell.exe -NoProfile -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Worker Manager installed successfully!`n`nAccess Dashboard: http://{server_ip}:5000', 'Installation Complete', 'OK', 'Information')" >nul
 ) else (
-    echo.
-    echo ERROR: Failed to start Worker Manager
-    echo Check Docker logs: docker-compose logs
-    echo.
+    powershell.exe -NoProfile -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Installation failed. Check Docker Desktop.', 'Installation Error', 'OK', 'Error')" >nul
 )
+
+exit
 """
 
     return script
