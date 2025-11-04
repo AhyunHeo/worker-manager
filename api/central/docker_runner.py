@@ -529,25 +529,23 @@ if %errorLevel% == 0 (
     REM Already running as admin - execute PowerShell
     echo [INFO] Running with administrator privileges...
     echo [INFO] Executing PowerShell script...
+    echo [INFO] Script location: %TEMP_PS1%
 
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TEMP_PS1%"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -NoExit -File "%TEMP_PS1%"
     set "PS_EXIT=!errorLevel!"
 
     echo [INFO] PowerShell exited with code: !PS_EXIT!
-
-    REM Cleanup
-    del "%TEMP_PS1%" 2>nul
+    echo [DEBUG] Script preserved at: %TEMP_PS1%
 
     if !PS_EXIT! neq 0 (
         echo.
         echo [ERROR] Installation failed with exit code !PS_EXIT!
-        echo [ERROR] Check error log: %USERPROFILE%\\Downloads\\central-ps-error.log
+        echo [ERROR] Script file: %TEMP_PS1%
         echo.
         pause
     ) else (
         echo.
         echo [SUCCESS] Installation completed successfully!
-        echo [INFO] Check log: %USERPROFILE%\\Downloads\\central-ps-error.log
         echo.
         timeout /t 5
     )
@@ -555,19 +553,16 @@ if %errorLevel% == 0 (
     REM Request admin privileges
     echo [INFO] Requesting administrator privileges...
     echo [INFO] Please click 'Yes' on the UAC prompt...
+    echo [DEBUG] Script location: %TEMP_PS1%
     echo.
 
-    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',\"%TEMP_PS1%\" -Verb RunAs -Wait"
+    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-NoExit','-File',\"%TEMP_PS1%\" -Verb RunAs"
 
     echo.
-    echo [INFO] PowerShell window closed.
-    echo [INFO] Check error log if installation failed: %USERPROFILE%\\Downloads\\central-ps-error.log
+    echo [INFO] PowerShell window should be open now.
+    echo [INFO] If you see errors, take a screenshot.
+    echo [DEBUG] Script preserved at: %TEMP_PS1%
     echo.
-
-    REM Cleanup
-    timeout /t 3 >nul
-    del "%TEMP_PS1%" 2>nul
-
     pause
 )
 
