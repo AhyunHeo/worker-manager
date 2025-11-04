@@ -11,7 +11,7 @@ function Write-Log {
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $logMessage = "[$timestamp] $Message"
     Add-Content -Path $logFile -Value $logMessage -ErrorAction SilentlyContinue
-    Write-Host $logMessage
+    # Write-Host 제거 - 터미널 창 숨김 모드
 }
 
 # 로그 파일 초기화
@@ -31,7 +31,7 @@ if (-not $isAdmin) {
     Write-Log "[ACTION] Requesting administrator privileges..."
 
     try {
-        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`"" -Verb RunAs
         Write-Log "[INFO] Administrator request sent"
         exit
     } catch {

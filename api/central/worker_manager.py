@@ -8,13 +8,13 @@ import base64
 
 def generate_worker_manager_installer(server_ip: str) -> str:
     """
-    Worker Manager 설치 스크립트 생성 (VBS 단일 파일)
+    Worker Manager 설치 스크립트 생성 (Docker Hub 이미지 사용)
 
     Args:
         server_ip: 서버 LAN IP
 
     Returns:
-        str: VBS 스크립트 (BAT 내장)
+        str: 설치 스크립트 (PowerShell + Batch)
     """
 
     # Docker Compose 파일 내용
@@ -206,52 +206,4 @@ del "%TEMP_PS1%" 2>nul
 exit
 """
 
-    # VBScript 파일 - BAT 코드 내장 및 숨김 실행
-    # BAT 스크립트를 Base64로 다시 인코딩 (VBS 내부에 안전하게 포함)
-    bat_base64 = base64.b64encode(batch_script.encode('utf-8')).decode('ascii')
-
-    vbs_script = f'''
-' Worker Manager Installation Script (VBS with embedded BAT)
-Set objFSO = CreateObject("Scripting.FileSystemObject")
-Set objShell = CreateObject("WScript.Shell")
-
-' Create temp BAT file
-tempFolder = objShell.ExpandEnvironmentStrings("%TEMP%")
-batFile = tempFolder & "\\worker-manager-install-" & Int(Rnd() * 10000) & ".bat"
-
-' Decode and write BAT content
-batContent = DecodeBase64("{bat_base64}")
-Set objFile = objFSO.CreateTextFile(batFile, True)
-objFile.Write batContent
-objFile.Close
-
-' Execute BAT in hidden mode
-objShell.Run """" & batFile & """", 0, True
-
-' Cleanup
-objFSO.DeleteFile batFile, True
-
-' Base64 decode function
-Function DecodeBase64(base64String)
-    Dim objXML, objNode
-    Set objXML = CreateObject("MSXML2.DOMDocument")
-    Set objNode = objXML.createElement("b64")
-    objNode.dataType = "bin.base64"
-    objNode.text = base64String
-    Dim stream
-    Set stream = CreateObject("ADODB.Stream")
-    stream.Type = 1
-    stream.Open
-    stream.Write objNode.nodeTypedValue
-    stream.Position = 0
-    stream.Type = 2
-    stream.Charset = "utf-8"
-    DecodeBase64 = stream.ReadText
-    stream.Close
-    Set stream = Nothing
-    Set objNode = Nothing
-    Set objXML = Nothing
-End Function
-'''
-
-    return vbs_script
+    return batch_script
