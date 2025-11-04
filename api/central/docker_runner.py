@@ -466,7 +466,8 @@ while ($form.Visible) {{
     for i in range(0, len(ps_base64), 64):
         b64_lines.append(ps_base64[i:i+64])
 
-    b64_content = '\\n'.join(b64_lines)
+    # Base64 라인들을 echo 명령으로 변환
+    b64_echo_lines = '\n'.join(f'echo {line}' for line in b64_lines)
 
     # BAT 파일 - certutil을 사용한 Base64 디코딩
     batch_script = f"""@echo off
@@ -487,8 +488,7 @@ echo [INFO] Creating PowerShell script...
 REM Create Base64 file with proper format for certutil
 (
 echo -----BEGIN CERTIFICATE-----
-{'
-'.join(f'echo {line}' for line in b64_lines)}
+{b64_echo_lines}
 echo -----END CERTIFICATE-----
 ) > "%B64_FILE%"
 
