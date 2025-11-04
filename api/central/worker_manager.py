@@ -96,14 +96,14 @@ LOG_LEVEL=INFO
 """
 
     # 설치 스크립트 - VBScript 래퍼로 숨김 실행
-    script = f"""@echo off
+    script = """@echo off
 REM Check if running hidden
-if not "%1"=="HIDDEN" (
+if not "%%1"=="HIDDEN" (
     REM Create VBScript to run hidden
-    echo Set WshShell = CreateObject("WScript.Shell") > "%TEMP%\\run_hidden.vbs"
-    echo WshShell.Run "cmd.exe /c """"%~f0"" HIDDEN""", 0 >> "%TEMP%\\run_hidden.vbs"
-    cscript //nologo "%TEMP%\\run_hidden.vbs"
-    del "%TEMP%\\run_hidden.vbs"
+    echo Set WshShell = CreateObject("WScript.Shell") > "%%TEMP%%\\run_hidden.vbs"
+    echo WshShell.Run "cmd.exe /c """"""%%~f0"" HIDDEN""", 0 >> "%%TEMP%%\\run_hidden.vbs"
+    cscript //nologo "%%TEMP%%\\run_hidden.vbs"
+    del "%%TEMP%%\\run_hidden.vbs"
     exit
 )
 
@@ -114,19 +114,19 @@ REM ============================================
 setlocal enabledelayedexpansion
 
 REM 작업 디렉토리 생성
-set "WM_DIR=%USERPROFILE%\\worker-manager"
+set "WM_DIR=%%USERPROFILE%%\\worker-manager"
 if not exist "!WM_DIR!" mkdir "!WM_DIR!"
 
 cd /d "!WM_DIR!"
 
 REM docker-compose.yml 생성
 (
-{docker_compose_yml}
+%s
 ) > docker-compose.yml
 
 REM .env 파일 생성
 (
-{env_content}
+%s
 ) > .env
 
 REM Docker 이미지 pull 및 실행
@@ -134,12 +134,12 @@ docker-compose pull >nul 2>&1
 docker-compose up -d >nul 2>&1
 
 if !errorlevel! equ 0 (
-    powershell.exe -NoProfile -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Worker Manager installed successfully!`n`nAccess Dashboard: http://{server_ip}:5000', 'Installation Complete', 'OK', 'Information')" >nul
+    powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Worker Manager installed successfully!`n`nAccess Dashboard: http://%s:5000', 'Installation Complete', 'OK', 'Information')" >nul
 ) else (
-    powershell.exe -NoProfile -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Installation failed. Check Docker Desktop.', 'Installation Error', 'OK', 'Error')" >nul
+    powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Installation failed. Check Docker Desktop.', 'Installation Error', 'OK', 'Error')" >nul
 )
 
 exit
-"""
+""" % (docker_compose_yml, env_content, server_ip)
 
     return script
