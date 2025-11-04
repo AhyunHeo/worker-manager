@@ -3,6 +3,8 @@ Worker Manager Installation Module
 중앙서버에 Worker Manager를 설치하는 스크립트 생성
 """
 
+import base64
+
 
 def generate_worker_manager_installer(server_ip: str) -> str:
     """
@@ -95,57 +97,113 @@ SECRET_KEY=your-secret-key-here
 LOG_LEVEL=INFO
 """
 
-    # 설치 스크립트 - VBScript 래퍼로 숨김 실행
-    script_part1 = '''@echo off
-REM Check if running hidden
-if not "%1"=="HIDDEN" (
-    REM Create VBScript to run hidden
-    echo Set WshShell = CreateObject("WScript.Shell") > "%TEMP%\\run_hidden.vbs"
-    echo WshShell.Run "cmd.exe /c """"%~f0"" HIDDEN""", 0 >> "%TEMP%\\run_hidden.vbs"
-    cscript //nologo "%TEMP%\\run_hidden.vbs"
-    del "%TEMP%\\run_hidden.vbs"
-    exit
-)
+    # PowerShell 스크립트 생성
+    ps_script = f'''
+# Worker Manager Installation Script
+$ErrorActionPreference = "Continue"
 
-REM ============================================
-REM Worker Manager Installation (Hidden Mode)
-REM ============================================
+try {{
+    # 작업 디렉토리 생성
+    $WM_DIR = Join-Path $env:USERPROFILE "worker-manager"
+    if (-not (Test-Path $WM_DIR)) {{
+        New-Item -ItemType Directory -Path $WM_DIR | Out-Null
+    }}
 
+    Set-Location $WM_DIR
+
+    # docker-compose.yml 생성
+    $dockerComposeContent = @"
+{docker_compose_yml}
+"@
+    Set-Content -Path "docker-compose.yml" -Value $dockerComposeContent -Encoding UTF8
+
+    # .env 파일 생성
+    $envContent = @"
+{env_content}
+"@
+    Set-Content -Path ".env" -Value $envContent -Encoding UTF8
+
+    # Docker 이미지 pull 및 실행
+    docker compose pull 2>&1 | Out-Null
+    docker compose up -d 2>&1 | Out-Null
+
+    # 결과 확인
+    if ($LASTEXITCODE -eq 0) {{
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show(
+            "Worker Manager installed successfully!`n`nAccess Dashboard: http://{server_ip}:5000",
+            "Installation Complete",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        )
+    }} else {{
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.MessageBox]::Show(
+            "Installation failed. Check Docker Desktop.",
+            "Installation Error",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
+    }}
+}} catch {{
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.MessageBox]::Show(
+        "Error: $_",
+        "Installation Error",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+    )
+}}
+'''
+
+    # Base64 인코딩 - UTF-8 사용
+    ps_bytes = ps_script.encode('utf-8')
+    ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
+
+    # Base64를 64자씩 나눔 (certutil 표준 형식)
+    b64_lines = []
+    for i in range(0, len(ps_base64), 64):
+        b64_lines.append(ps_base64[i:i+64])
+
+    # Base64 라인들을 echo 명령으로 변환
+    b64_echo_lines = '\n'.join(f'echo {line}' for line in b64_lines)
+
+    # BAT 파일 - certutil을 사용한 Base64 디코딩
+    batch_script = f"""@echo off
+chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
-REM 작업 디렉토리 생성
-set "WM_DIR=%USERPROFILE%\\worker-manager"
-if not exist "!WM_DIR!" mkdir "!WM_DIR!"
+REM Create temporary files
+set "TEMP_PS1=%TEMP%\\worker-manager-installer-%RANDOM%.ps1"
+set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
 
-cd /d "!WM_DIR!"
-
-REM docker-compose.yml 생성
+REM Create Base64 file with proper format for certutil
 (
-'''
+echo -----BEGIN CERTIFICATE-----
+{b64_echo_lines}
+echo -----END CERTIFICATE-----
+) > "%B64_FILE%"
 
-    script_part2 = '''
-) > docker-compose.yml
+REM Decode Base64 to PowerShell script
+certutil -decode "%B64_FILE%" "%TEMP_PS1%" >nul 2>&1
 
-REM .env 파일 생성
-(
-'''
+REM Cleanup Base64 file
+del "%B64_FILE%" 2>nul
 
-    script_part3 = f'''
-) > .env
-
-REM Docker 이미지 pull 및 실행
-docker-compose pull >nul 2>&1
-docker-compose up -d >nul 2>&1
-
-if !errorlevel! equ 0 (
-    powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Worker Manager installed successfully!`n`nAccess Dashboard: http://{server_ip}:5000', 'Installation Complete', 'OK', 'Information')" >nul
-) else (
-    powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; [System.Windows.Forms.MessageBox]::Show('Installation failed. Check Docker Desktop.', 'Installation Error', 'OK', 'Error')" >nul
+if not exist "%TEMP_PS1%" (
+    echo [ERROR] Failed to create PowerShell script
+    pause
+    exit /b 1
 )
 
+REM Execute PowerShell script (hidden console, GUI only)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%TEMP_PS1%"
+
+REM Cleanup
+timeout /t 2 >nul
+del "%TEMP_PS1%" 2>nul
+
 exit
-'''
+"""
 
-    script = script_part1 + docker_compose_yml + script_part2 + env_content + script_part3
-
-    return script
+    return batch_script
