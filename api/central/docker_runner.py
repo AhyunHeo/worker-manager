@@ -457,11 +457,18 @@ while ($form.Visible) {{
 }}
 '''
 
-    # PowerShell 스크립트를 Base64로 인코딩 (안정적인 방법)
+    # Base64 인코딩 및 64자씩 나누기 (certutil 형식)
     ps_bytes = ps_script.encode('utf-16le')
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
 
-    # BAT 파일 - Base64 인코딩된 명령 실행
+    # Base64를 64자씩 나눔 (certutil 표준 형식)
+    b64_lines = []
+    for i in range(0, len(ps_base64), 64):
+        b64_lines.append(ps_base64[i:i+64])
+
+    b64_content = '\\n'.join(b64_lines)
+
+    # BAT 파일 - certutil을 사용한 Base64 디코딩
     batch_script = f"""@echo off
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
@@ -471,43 +478,61 @@ echo Central Server Docker Runner
 echo =========================================
 echo.
 
-REM Create log file in Downloads folder
-set "LOG_FILE=%USERPROFILE%\\Downloads\\central-install-debug.log"
-echo [%date% %time%] Installation started > "%LOG_FILE%"
+REM Create temporary files
+set "TEMP_PS1=%TEMP%\\central-docker-runner-%RANDOM%.ps1"
+set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
+
+echo [INFO] Creating PowerShell script...
+
+REM Create Base64 file with proper format for certutil
+(
+echo -----BEGIN CERTIFICATE-----
+{'
+'.join(f'echo {line}' for line in b64_lines)}
+echo -----END CERTIFICATE-----
+) > "%B64_FILE%"
+
+REM Decode Base64 to PowerShell script
+certutil -decode "%B64_FILE%" "%TEMP_PS1%" >nul 2>&1
+
+REM Cleanup Base64 file
+del "%B64_FILE%" 2>nul
+
+if not exist "%TEMP_PS1%" (
+    echo [ERROR] Failed to create PowerShell script
+    pause
+    exit /b 1
+)
 
 REM Check for administrator privileges
 echo [INFO] Checking administrator privileges...
-echo [%date% %time%] Checking admin rights >> "%LOG_FILE%"
-
 net session >nul 2>&1
+
 if %errorLevel% == 0 (
     REM Already running as admin - execute PowerShell
     echo [INFO] Running with administrator privileges...
-    echo [%date% %time%] Running as admin >> "%LOG_FILE%"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TEMP_PS1%"
+    set "PS_EXIT=!errorLevel!"
 
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}
-    set "PS_EXIT=%errorLevel%"
-    echo [%date% %time%] PowerShell exit code: %PS_EXIT% >> "%LOG_FILE%"
+    REM Cleanup
+    del "%TEMP_PS1%" 2>nul
 
     if !PS_EXIT! neq 0 (
         echo.
-        echo [ERROR] Installation failed with code !PS_EXIT!
-        echo [ERROR] Check log: %LOG_FILE%
+        echo [ERROR] Installation failed with exit code !PS_EXIT!
         echo.
         pause
     )
 ) else (
-    REM Request admin privileges and wait for completion
+    REM Request admin privileges
     echo [INFO] Requesting administrator privileges...
-    echo [%date% %time%] Requesting UAC elevation >> "%LOG_FILE%"
+    echo [INFO] Please click 'Yes' on the UAC prompt...
 
-    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile -ExecutionPolicy Bypass -EncodedCommand {ps_base64}' -Verb RunAs -Wait"
+    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',\"%TEMP_PS1%\" -Verb RunAs -Wait"
 
-    echo [%date% %time%] UAC process completed >> "%LOG_FILE%"
-    echo.
-    echo [INFO] Installation process completed
-    echo [INFO] Check log file: %LOG_FILE%
-    pause
+    REM Cleanup
+    timeout /t 2 >nul
+    del "%TEMP_PS1%" 2>nul
 )
 
 exit /b
