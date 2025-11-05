@@ -474,9 +474,17 @@ Stop-Transcript
 Write-Host "Installation completed. Log saved to: $LogFile"
 '''
 
-    # PowerShell 스크립트를 Base64로 인코딩 (명령줄 인자로 전달)
-    ps_bytes = ps_script.encode('utf-16le')  # PowerShell -EncodedCommand는 UTF-16LE 필요
+    # PowerShell 스크립트를 Base64로 인코딩
+    ps_bytes = ps_script.encode('utf-16le')
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
+
+    # Base64를 64자씩 나눔 (파일로 저장하기 위해)
+    b64_lines = []
+    for i in range(0, len(ps_base64), 64):
+        b64_lines.append(ps_base64[i:i+64])
+
+    # echo 명령으로 변환 (각 줄마다)
+    b64_echo_commands = '\n'.join(f'echo {line}>>"%B64_FILE%"' for line in b64_lines)
 
     # BAT 파일 - VBScript 없이 PowerShell만 사용
     batch_script = f'''@echo off
@@ -487,14 +495,27 @@ REM Create error log file immediately
 set "ERROR_LOG=%USERPROFILE%\\Downloads\\central-bat-error.log"
 echo [%DATE% %TIME%] Starting Central Server Docker Runner > "%ERROR_LOG%"
 
-REM Create temporary PowerShell script file
+REM Create temporary files
 set "TEMP_PS1=%TEMP%\\central-docker-runner-%RANDOM%.ps1"
+set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
 
-REM Write PowerShell script to temp file (no Base64, direct write)
-echo [%DATE% %TIME%] Creating PowerShell script... >> "%ERROR_LOG%"
+REM Write Base64 data to file (avoid command line length limit)
+echo [%DATE% %TIME%] Creating Base64 file... >> "%ERROR_LOG%"
+{b64_echo_commands}
 
-REM Use PowerShell to decode and write the script
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[Convert]::FromBase64String('{ps_base64}'); $text=[System.Text.Encoding]::Unicode.GetString($bytes); Set-Content -Path '%TEMP_PS1%' -Value $text -Encoding UTF8" 2>> "%ERROR_LOG%"
+if not exist "%B64_FILE%" (
+    echo [%DATE% %TIME%] ERROR: Failed to create Base64 file >> "%ERROR_LOG%"
+    powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Failed to create Base64 file.`n`nCheck log: %ERROR_LOG%', 'Error', 'OK', 'Error')" 2>> "%ERROR_LOG%"
+    pause
+    exit /b 1
+)
+
+REM Decode Base64 file to PowerShell script
+echo [%DATE% %TIME%] Decoding PowerShell script... >> "%ERROR_LOG%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$b64=Get-Content '%B64_FILE%' -Raw; $b64=$b64 -replace '\\s',''; $bytes=[Convert]::FromBase64String($b64); $text=[System.Text.Encoding]::Unicode.GetString($bytes); Set-Content -Path '%TEMP_PS1%' -Value $text -Encoding UTF8" 2>> "%ERROR_LOG%"
+
+REM Cleanup Base64 file
+del "%B64_FILE%" 2>nul
 
 if not exist "%TEMP_PS1%" (
     echo [%DATE% %TIME%] ERROR: Failed to create PowerShell script >> "%ERROR_LOG%"
