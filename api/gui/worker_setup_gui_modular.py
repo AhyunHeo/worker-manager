@@ -6,14 +6,10 @@ import json
 import os
 import logging
 import base64
-import sys
-import os
-# 상위 디렉토리를 Python 경로에 추가
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import Node
+from ..models import Node
 # VPN 기능 제거됨 - LAN IP 사용
-from gui.modules import get_docker_runner_orchestrator
+from .modules import get_docker_runner_orchestrator
 
 logger = logging.getLogger(__name__)
 
