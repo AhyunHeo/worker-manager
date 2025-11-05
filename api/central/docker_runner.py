@@ -125,12 +125,18 @@ try {{
     
     if (-not $dockerInstalled) {{
         $statusLabel.Text = 'Docker Desktop not installed!'
+        Write-Host "ERROR: Docker Desktop is not installed!"
+        Write-Host "Checked paths:"
+        foreach ($path in $dockerPath) {{
+            Write-Host "  - $path : $(Test-Path $path)"
+        }}
         $result = [System.Windows.Forms.MessageBox]::Show(
             "Docker Desktop is not installed.`n`nWould you like to download it?",
             'Docker Required',
             'YesNo',
             'Warning'
         )
+        Write-Host "User response: $result"
         if ($result -eq 'Yes') {{
             Start-Process 'https://www.docker.com/products/docker-desktop/'
         }}
@@ -140,6 +146,8 @@ try {{
             [System.Windows.Forms.Application]::DoEvents()
             Start-Sleep -Milliseconds 100
         }}
+        Write-Host "Exiting: Docker Desktop not installed"
+        Stop-Transcript
         return
     }}
     
@@ -173,37 +181,58 @@ try {{
         }}
         
         if ($LASTEXITCODE -ne 0) {{
+            Write-Host "ERROR: Docker Desktop failed to start after waiting $maxWait seconds"
+            Write-Host "Last exit code: $LASTEXITCODE"
             throw "Docker Desktop failed to start"
         }}
     }}
+
+    Write-Host "SUCCESS: Docker is running"
 
     # 관리자 권한 확인
     $statusLabel.Text = 'Checking administrator privileges...'
     $progressBar.Value = 50
     [System.Windows.Forms.Application]::DoEvents()
 
-    if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {{
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    Write-Host "Administrator check: $isAdmin"
+
+    if (-NOT $isAdmin) {{
+        Write-Host "ERROR: Not running with administrator privileges"
         throw "관리자 권한이 필요합니다. 스크립트를 관리자 권한으로 실행해주세요."
     }}
+
+    Write-Host "SUCCESS: Running with administrator privileges"
 
     # WSL IP 가져오기
     $statusLabel.Text = 'Detecting WSL IP address...'
     $progressBar.Value = 52
     [System.Windows.Forms.Application]::DoEvents()
 
+    Write-Host "Detecting WSL IP address..."
     try {{
         $wslOutput = wsl hostname -I 2>&1
+        Write-Host "WSL command output: $wslOutput"
+        Write-Host "WSL exit code: $LASTEXITCODE"
+
         if ($LASTEXITCODE -ne 0) {{
+            Write-Host "ERROR: WSL command failed with exit code $LASTEXITCODE"
             throw "WSL not running or not installed"
         }}
         $wslIP = $wslOutput.Trim().Split()[0]
+        Write-Host "Detected WSL IP: $wslIP"
+
         if (-not $wslIP -or $wslIP -eq "") {{
+            Write-Host "ERROR: WSL IP is empty or null"
             throw "Failed to detect WSL IP address"
         }}
     }} catch {{
         $statusLabel.Text = "Error: WSL IP detection failed"
+        Write-Host "ERROR: WSL IP detection failed: $_"
         throw "WSL이 실행되고 있지 않거나 설치되지 않았습니다. WSL을 실행한 후 다시 시도해주세요.`n`n오류: $_"
     }}
+
+    Write-Host "SUCCESS: WSL IP detected: $wslIP"
 
     # 주요 포트 목록 (중앙서버 + Worker Manager)
     $ports = @(3000, 8000, 5002, 5000, 8091, 5432, 27017)
@@ -213,25 +242,35 @@ try {{
     $progressBar.Value = 54
     [System.Windows.Forms.Application]::DoEvents()
 
+    Write-Host "Removing old port forwarding rules..."
     foreach ($port in $ports) {{
         netsh interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=$port 2>$null | Out-Null
         netsh interface portproxy delete v4tov4 listenaddress={local_ip} listenport=$port 2>$null | Out-Null
     }}
+    Write-Host "Old port forwarding rules removed"
 
     # 새로운 포트포워딩 규칙 추가
     $statusLabel.Text = 'Adding port forwarding rules...'
     $progressBar.Value = 55
     [System.Windows.Forms.Application]::DoEvents()
 
+    Write-Host "Adding port forwarding rules (WSL IP: $wslIP)..."
     $portForwardSuccess = 0
     foreach ($port in $ports) {{
+        Write-Host "  Adding port forwarding for port $port..."
         $result = netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$port connectaddress=$wslIP connectport=$port 2>&1
         if ($LASTEXITCODE -eq 0) {{
             $portForwardSuccess++
+            Write-Host "    SUCCESS: Port $port forwarded"
+        }} else {{
+            Write-Host "    FAILED: Port $port - Exit code $LASTEXITCODE - $result"
         }}
     }}
 
+    Write-Host "Port forwarding: $portForwardSuccess/$($ports.Count) successful"
+
     if ($portForwardSuccess -eq 0) {{
+        Write-Host "ERROR: All port forwarding rules failed"
         throw "포트포워딩 규칙 추가에 실패했습니다. 관리자 권한으로 실행되고 있는지 확인하세요."
     }}
 
@@ -240,9 +279,11 @@ try {{
     $progressBar.Value = 57
     [System.Windows.Forms.Application]::DoEvents()
 
+    Write-Host "Adding firewall rules..."
     $firewallSuccess = 0
     foreach ($port in $ports) {{
         $ruleName = "Central-Server-Port-$port"
+        Write-Host "  Adding firewall rule for port $port..."
 
         # 기존 규칙 삭제
         netsh advfirewall firewall delete rule name="$ruleName" 2>$null | Out-Null
@@ -251,10 +292,16 @@ try {{
         $result = netsh advfirewall firewall add rule name="$ruleName" dir=in action=allow protocol=TCP localport=$port 2>&1
         if ($LASTEXITCODE -eq 0) {{
             $firewallSuccess++
+            Write-Host "    SUCCESS: Firewall rule for port $port added"
+        }} else {{
+            Write-Host "    FAILED: Firewall rule for port $port - Exit code $LASTEXITCODE - $result"
         }}
     }}
 
+    Write-Host "Firewall rules: $firewallSuccess/$($ports.Count) successful"
+
     if ($firewallSuccess -eq 0) {{
+        Write-Host "ERROR: All firewall rules failed"
         throw "방화벽 규칙 추가에 실패했습니다. 관리자 권한으로 실행되고 있는지 확인하세요."
     }}
 
@@ -385,7 +432,8 @@ volumes:
 '@
     
     Set-Content -Path 'docker-compose.yml' -Value $composeContent
-    
+    Write-Host "SUCCESS: docker-compose.yml created"
+
     # .env 파일 생성
     $envContent = @"
 # Auto-generated environment file
@@ -395,7 +443,7 @@ volumes:
 HOST_IP={local_ip}
 SERVER_IP={local_ip}
 
-# Port Configuration  
+# Port Configuration
 FRONTEND_PORT={metadata.get('frontend_port', 3000)}
 API_PORT={metadata.get('api_port', 8000)}
 FL_PORT={metadata.get('fl_port', 5002)}
@@ -412,28 +460,50 @@ JWT_SECRET_KEY={jwt_key}
 PYTHONUNBUFFERED=1
 WS_MESSAGE_QUEUE_SIZE=100
 "@
-    
+
     Set-Content -Path '.env' -Value $envContent
-    
+    Write-Host "SUCCESS: .env file created"
+
     # Docker 이미지 Pull
     $statusLabel.Text = 'Downloading Docker images...'
     $progressBar.Value = 80
     [System.Windows.Forms.Application]::DoEvents()
-    
-    docker compose pull 2>&1 | Out-Null
-    
+
+    Write-Host "Pulling Docker images..."
+    $pullOutput = docker compose pull 2>&1
+    Write-Host "Docker pull output: $pullOutput"
+    Write-Host "Docker pull exit code: $LASTEXITCODE"
+
     # 컨테이너 시작
     $statusLabel.Text = 'Starting central server...'
     $progressBar.Value = 90
     [System.Windows.Forms.Application]::DoEvents()
-    
-    docker compose down 2>&1 | Out-Null
-    docker compose up -d 2>&1 | Out-Null
+
+    Write-Host "Stopping existing containers..."
+    $downOutput = docker compose down 2>&1
+    Write-Host "Docker down output: $downOutput"
+
+    Write-Host "Starting containers..."
+    $upOutput = docker compose up -d 2>&1
+    Write-Host "Docker up output: $upOutput"
+    Write-Host "Docker up exit code: $LASTEXITCODE"
 
     Start-Sleep -Seconds 3
 
     $progressBar.Value = 100
     $statusLabel.Text = 'Central server started successfully!'
+
+    Write-Host "SUCCESS: Central server started successfully!"
+    Write-Host "========================================="
+    Write-Host "Access URLs:"
+    Write-Host "- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}"
+    Write-Host "- API: http://{local_ip}:{metadata.get('api_port', 8000)}"
+    Write-Host "- FL Server: http://{local_ip}:{metadata.get('fl_port', 5002)}"
+    Write-Host "Network Configuration:"
+    Write-Host "- WSL IP: $wslIP"
+    Write-Host "- Port Forwarding: $portForwardSuccess/$($ports.Count) ports"
+    Write-Host "- Firewall Rules: $firewallSuccess/$($ports.Count) rules"
+    Write-Host "========================================="
 
     [System.Windows.Forms.MessageBox]::Show(
         "🎉 Central Server Started Successfully!`n`n" +
@@ -450,18 +520,25 @@ WS_MESSAGE_QUEUE_SIZE=100
         'OK',
         'Information'
     )
-    
+
 }} catch {{
     $statusLabel.Text = "Error: $_"
+    Write-Host "========================================="
+    Write-Host "ERROR: Installation failed!"
+    Write-Host "Error message: $_"
+    Write-Host "Error type: $($_.Exception.GetType().FullName)"
+    Write-Host "Stack trace: $($_.ScriptStackTrace)"
+    Write-Host "========================================="
+
     [System.Windows.Forms.MessageBox]::Show(
         "An error occurred:`n`n$_`n`nCheck log: $LogFile",
         'Error',
         'OK',
         'Error'
     )
-    Write-Host "Error in main try block: $_"
 }} finally {{
     $closeButton.Enabled = $true
+    Write-Host "Cleaning up..."
 }}
 
 # Wait for form to close
@@ -489,11 +566,19 @@ Write-Host "Installation completed. Log saved to: $LogFile"
     # BAT 파일 - VBScript 없이 PowerShell만 사용
     batch_script = f'''@echo off
 chcp 65001 >nul 2>&1
+
+REM Check if already running hidden
+if not "%1"=="HIDDEN" (
+    REM Re-run this script hidden using PowerShell Start-Process
+    powershell.exe -NoProfile -WindowStyle Hidden -Command "$psi = New-Object System.Diagnostics.ProcessStartInfo; $psi.FileName = 'cmd.exe'; $psi.Arguments = '/c \"\"%~f0\" HIDDEN\"'; $psi.WindowStyle = 'Hidden'; $psi.CreateNoWindow = $true; [System.Diagnostics.Process]::Start($psi)" >nul 2>&1
+    exit /b
+)
+
 setlocal enabledelayedexpansion
 
 REM Create error log file immediately
 set "ERROR_LOG=%USERPROFILE%\\Downloads\\central-bat-error.log"
-echo [%DATE% %TIME%] Starting Central Server Docker Runner > "%ERROR_LOG%"
+echo [%DATE% %TIME%] Starting Central Server Docker Runner (Hidden Mode) > "%ERROR_LOG%"
 
 REM Create temporary files
 set "TEMP_PS1=%TEMP%\\central-docker-runner-%RANDOM%.ps1"
