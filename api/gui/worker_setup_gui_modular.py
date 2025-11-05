@@ -24,7 +24,18 @@ CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://192.168.0.88:8000')
 def generate_worker_setup_gui_modular(node: Node) -> str:
     """워커 노드 통합 설치 GUI 생성 - 모듈화된 버전"""
 
-    metadata = json.loads(node.docker_env_vars) if node.docker_env_vars else {}
+    # JSON 파싱 시 에러 처리 추가
+    metadata = {}
+    if node.docker_env_vars:
+        try:
+            # 빈 문자열이나 공백만 있는 경우 처리
+            env_vars_str = str(node.docker_env_vars).strip()
+            if env_vars_str:
+                metadata = json.loads(env_vars_str)
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"Failed to parse docker_env_vars for node {node.node_id}: {e}. Using empty metadata.")
+            metadata = {}
+
     server_ip = LOCAL_SERVER_IP
 
     # VPN 기능이 제거되었으므로 빈 함수 정의 (호환성 유지)

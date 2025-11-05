@@ -373,6 +373,3 @@ docker-compose down -v
 - 최소 권한 원칙 적용
 - 환경변수를 통한 민감 정보 관리
 
-## 📝 라이선스
-
-MIT License
