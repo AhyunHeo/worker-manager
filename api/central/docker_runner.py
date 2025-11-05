@@ -474,26 +474,97 @@ WS_MESSAGE_QUEUE_SIZE=100
     Write-Host "Docker pull output: $pullOutput"
     Write-Host "Docker pull exit code: $LASTEXITCODE"
 
+    # 컨테이너 시작 전 포트 체크 및 정리
+    $statusLabel.Text = 'Checking and cleaning up ports...'
+    $progressBar.Value = 85
+    [System.Windows.Forms.Application]::DoEvents()
+
+    Write-Host "Checking if ports are in use..."
+    foreach ($port in $ports) {{
+        $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+        if ($connections) {{
+            foreach ($conn in $connections) {{
+                $pid = $conn.OwningProcess
+                Write-Host "  WARNING: Port $port is in use by PID $pid"
+                try {{
+                    $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
+                    if ($process) {{
+                        Write-Host "    Process: $($process.ProcessName) (PID: $pid)"
+                        # Don't kill system processes
+                        if ($process.ProcessName -ne "System" -and $process.ProcessName -ne "svchost") {{
+                            Write-Host "    Killing process: $($process.ProcessName)"
+                            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                            Write-Host "    Process killed successfully"
+                        }} else {{
+                            Write-Host "    Skipping system process: $($process.ProcessName)"
+                        }}
+                    }}
+                }} catch {{
+                    Write-Host "    Could not kill process PID: $pid - $_"
+                }}
+            }}
+        }} else {{
+            Write-Host "  Port $port is free"
+        }}
+    }}
+
     # 컨테이너 시작
     $statusLabel.Text = 'Starting central server...'
     $progressBar.Value = 90
     [System.Windows.Forms.Application]::DoEvents()
 
-    Write-Host "Stopping existing containers..."
-    $downOutput = docker compose down 2>&1
+    Write-Host "Stopping ALL existing containers with 'central' in name..."
+    $existingContainers = docker ps -a --filter "name=central" --format "{{{{.Names}}}}" 2>&1
+    Write-Host "Existing containers: $existingContainers"
+
+    if ($existingContainers) {{
+        Write-Host "Force removing existing central containers..."
+        docker ps -a --filter "name=central" --format "{{{{.Names}}}}" | ForEach-Object {{
+            Write-Host "  Removing container: $_"
+            docker rm -f $_ 2>&1 | Out-Null
+        }}
+    }}
+
+    # Wait for ports to be released
+    Write-Host "Waiting for ports to be released..."
+    Start-Sleep -Seconds 3
+
+    Write-Host "Stopping containers via docker compose..."
+    $downOutput = docker compose down -v 2>&1
     Write-Host "Docker down output: $downOutput"
 
     Write-Host "Starting containers..."
     $upOutput = docker compose up -d 2>&1
+    $upExitCode = $LASTEXITCODE
     Write-Host "Docker up output: $upOutput"
-    Write-Host "Docker up exit code: $LASTEXITCODE"
+    Write-Host "Docker up exit code: $upExitCode"
 
-    Start-Sleep -Seconds 3
+    if ($upExitCode -ne 0) {{
+        Write-Host "ERROR: Docker compose up failed with exit code $upExitCode"
+        Write-Host "Checking which containers are running..."
+        $runningContainers = docker ps --filter "name=central" --format "table {{{{.Names}}}}\t{{{{.Status}}}}" 2>&1
+        Write-Host "Running containers: $runningContainers"
+        throw "Docker 컨테이너 시작에 실패했습니다. 로그를 확인하세요: $LogFile"
+    }}
+
+    Start-Sleep -Seconds 5
+
+    # 실제로 컨테이너가 실행 중인지 확인
+    Write-Host "Verifying containers are running..."
+    $runningCount = (docker ps --filter "name=central" --format "{{{{.Names}}}}" | Measure-Object -Line).Lines
+    Write-Host "Number of running central containers: $runningCount"
+
+    if ($runningCount -lt 5) {{
+        Write-Host "ERROR: Expected at least 5 containers, but only $runningCount are running"
+        $containerStatus = docker ps -a --filter "name=central" --format "table {{{{.Names}}}}\t{{{{.Status}}}}" 2>&1
+        Write-Host "Container status: $containerStatus"
+        throw "일부 컨테이너가 시작되지 않았습니다. 컨테이너 수: $runningCount/6"
+    }}
 
     $progressBar.Value = 100
     $statusLabel.Text = 'Central server started successfully!'
 
-    Write-Host "SUCCESS: Central server started successfully!"
+    Write-Host "SUCCESS: Central server started successfully! ($runningCount containers running)"
     Write-Host "========================================="
     Write-Host "Access URLs:"
     Write-Host "- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}"
