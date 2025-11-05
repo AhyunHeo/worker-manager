@@ -474,78 +474,69 @@ Stop-Transcript
 Write-Host "Installation completed. Log saved to: $LogFile"
 '''
 
-    # Base64 인코딩 - UTF-8 사용 (certutil 호환성 향상)
-    ps_bytes = ps_script.encode('utf-8')
+    # PowerShell 스크립트를 Base64로 인코딩 (명령줄 인자로 전달)
+    ps_bytes = ps_script.encode('utf-16le')  # PowerShell -EncodedCommand는 UTF-16LE 필요
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
 
-    # Base64를 64자씩 나눔 (certutil 표준 형식)
-    b64_lines = []
-    for i in range(0, len(ps_base64), 64):
-        b64_lines.append(ps_base64[i:i+64])
-
-    # Base64 라인들을 echo 명령으로 변환
-    b64_echo_lines = '\n'.join(f'echo {line}' for line in b64_lines)
-
-    # BAT 파일 - certutil을 사용한 Base64 디코딩
+    # BAT 파일 - VBScript 없이 PowerShell만 사용
     batch_script = f'''@echo off
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
-REM Check if running hidden
-if not "%1"=="HIDDEN" (
-    REM Create VBScript to run hidden
-    echo Set WshShell = CreateObject("WScript.Shell") > "%TEMP%\\run_hidden.vbs"
-    echo WshShell.Run "cmd.exe /c """"%~f0"" HIDDEN""", 0 >> "%TEMP%\\run_hidden.vbs"
-    cscript //nologo "%TEMP%\\run_hidden.vbs"
-    del "%TEMP%\\run_hidden.vbs"
-    exit
-)
+REM Create error log file immediately
+set "ERROR_LOG=%USERPROFILE%\\Downloads\\central-bat-error.log"
+echo [%DATE% %TIME%] Starting Central Server Docker Runner > "%ERROR_LOG%"
 
-REM Create temporary files
+REM Create temporary PowerShell script file
 set "TEMP_PS1=%TEMP%\\central-docker-runner-%RANDOM%.ps1"
-set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
 
-REM Create Base64 file with proper format for certutil
-(
-echo -----BEGIN CERTIFICATE-----
-{b64_echo_lines}
-echo -----END CERTIFICATE-----
-) > "%B64_FILE%"
+REM Write PowerShell script to temp file (no Base64, direct write)
+echo [%DATE% %TIME%] Creating PowerShell script... >> "%ERROR_LOG%"
 
-REM Decode Base64 to PowerShell script
-certutil -decode "%B64_FILE%" "%TEMP_PS1%" >nul 2>&1
-
-REM Cleanup Base64 file
-del "%B64_FILE%" 2>nul
+REM Use PowerShell to decode and write the script
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[Convert]::FromBase64String('{ps_base64}'); $text=[System.Text.Encoding]::Unicode.GetString($bytes); Set-Content -Path '%TEMP_PS1%' -Value $text -Encoding UTF8" 2>> "%ERROR_LOG%"
 
 if not exist "%TEMP_PS1%" (
-    powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Windows.Forms.MessageBox]::Show('Failed to create PowerShell script', 'Error', 'OK', 'Error')"
+    echo [%DATE% %TIME%] ERROR: Failed to create PowerShell script >> "%ERROR_LOG%"
+    powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Failed to create PowerShell script.`n`nCheck log: %ERROR_LOG%', 'Error', 'OK', 'Error')" 2>> "%ERROR_LOG%"
+    pause
     exit /b 1
 )
 
+echo [%DATE% %TIME%] PowerShell script created successfully >> "%ERROR_LOG%"
+
 REM Check for administrator privileges
+echo [%DATE% %TIME%] Checking administrator privileges... >> "%ERROR_LOG%"
 net session >nul 2>&1
 
 if %errorLevel% == 0 (
+    echo [%DATE% %TIME%] Running with admin privileges >> "%ERROR_LOG%"
     REM Already running as admin - execute PowerShell (hidden console, GUI only)
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%TEMP_PS1%"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%TEMP_PS1%" 2>> "%ERROR_LOG%"
     set "PS_EXIT=!errorLevel!"
+
+    echo [%DATE% %TIME%] PowerShell exited with code: !PS_EXIT! >> "%ERROR_LOG%"
 
     REM Cleanup
     del "%TEMP_PS1%" 2>nul
 
     if !PS_EXIT! neq 0 (
-        powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Windows.Forms.MessageBox]::Show('Installation failed with exit code !PS_EXIT!`n`nCheck log: %USERPROFILE%\\Downloads\\central-ps-error.log', 'Error', 'OK', 'Error')"
+        powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Installation failed with exit code !PS_EXIT!`n`nCheck logs:`n- %ERROR_LOG%`n- %USERPROFILE%\\Downloads\\central-ps-error.log', 'Error', 'OK', 'Error')"
+        pause
     )
 ) else (
+    echo [%DATE% %TIME%] Requesting admin privileges... >> "%ERROR_LOG%"
     REM Request admin privileges (hidden console, GUI only)
-    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File',\"%TEMP_PS1%\" -Verb RunAs"
+    powershell.exe -NoProfile -Command "Start-Process powershell.exe -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','%TEMP_PS1%' -Verb RunAs" 2>> "%ERROR_LOG%"
 
     REM Cleanup after a delay
-    timeout /t 3 >nul
+    timeout /t 5 >nul
     del "%TEMP_PS1%" 2>nul
+
+    echo [%DATE% %TIME%] Admin request sent, waiting for completion... >> "%ERROR_LOG%"
 )
 
+echo [%DATE% %TIME%] Script completed >> "%ERROR_LOG%"
 exit /b
 '''
 
