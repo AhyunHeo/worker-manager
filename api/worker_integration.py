@@ -29,7 +29,7 @@ CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://192.168.0.88:8000')
 
 # GUI 모듈 import 시도 (옵션)
 try:
-    from .gui.worker_setup_gui_modular import generate_worker_setup_gui_modular
+    from gui.worker_setup_gui_modular import generate_worker_setup_gui_modular
     GUI_MODULE_AVAILABLE = True
     logger.info("GUI module loaded successfully")
 except ImportError as e:
