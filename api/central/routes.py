@@ -277,11 +277,16 @@ async def central_setup_page():
                 <div class="qr-code" id="qrCode"></div>
                 <p style="color: #666; margin-bottom: 10px;">또는 이 링크를 사용하세요:</p>
                 <div>
-                    <input type="text" id="installUrl" readonly 
+                    <input type="text" id="installUrl" readonly
                            style="margin-bottom: 10px; font-size: 14px;">
-                    <button onclick="copyUrl()" class="btn" style="background: #28a745;">
-                        📋 링크 복사
-                    </button>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="openInNewTab()" class="btn" style="background: #6366f1; flex: 1;">
+                            🔗 새 탭으로 열기
+                        </button>
+                        <button onclick="copyUrl()" class="btn" style="background: #28a745; flex: 1;">
+                            📋 링크 복사
+                        </button>
+                    </div>
                 </div>
                 <div class="info-box">
                     <p>
@@ -356,17 +361,31 @@ async def central_setup_page():
                 }
             });
             
+            function openInNewTab() {
+                const url = document.getElementById('installUrl').value;
+                window.open(url, '_blank');
+
+                // 버튼 피드백
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ 새 탭에서 열림!';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+
             function copyUrl() {
                 const urlInput = document.getElementById('installUrl');
                 urlInput.select();
                 document.execCommand('copy');
-                
+
                 // 복사 완료 피드백
                 const btn = event.target;
                 const originalText = btn.textContent;
                 btn.textContent = '✅ 복사됨!';
                 btn.style.background = '#28a745';
-                
+
                 setTimeout(() => {
                     btn.textContent = originalText;
                 }, 2000);

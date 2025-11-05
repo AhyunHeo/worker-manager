@@ -29,10 +29,14 @@ CENTRAL_SERVER_URL = os.getenv('CENTRAL_SERVER_URL', 'http://192.168.0.88:8000')
 
 # GUI 모듈 import 시도 (옵션)
 try:
-    from gui.worker_setup_gui_modular import generate_worker_setup_gui_modular
+    from .gui.worker_setup_gui_modular import generate_worker_setup_gui_modular
     GUI_MODULE_AVAILABLE = True
-except ImportError:
-    logger.warning("GUI module not available, using fallback")
+    logger.info("GUI module loaded successfully")
+except ImportError as e:
+    logger.error(f"GUI module not available: {e}")
+    GUI_MODULE_AVAILABLE = False
+except Exception as e:
+    logger.error(f"Error loading GUI module: {e}")
     GUI_MODULE_AVAILABLE = False
 
 router = APIRouter()
