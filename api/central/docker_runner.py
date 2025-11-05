@@ -484,23 +484,23 @@ WS_MESSAGE_QUEUE_SIZE=100
         $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
         if ($connections) {{
             foreach ($conn in $connections) {{
-                $pid = $conn.OwningProcess
-                Write-Host "  WARNING: Port $port is in use by PID $pid"
+                $processId = $conn.OwningProcess
+                Write-Host "  WARNING: Port $port is in use by PID $processId"
                 try {{
-                    $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
+                    $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
                     if ($process) {{
-                        Write-Host "    Process: $($process.ProcessName) (PID: $pid)"
+                        Write-Host "    Process: $($process.ProcessName) (PID: $processId)"
                         # Don't kill system processes
                         if ($process.ProcessName -ne "System" -and $process.ProcessName -ne "svchost") {{
                             Write-Host "    Killing process: $($process.ProcessName)"
-                            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
                             Write-Host "    Process killed successfully"
                         }} else {{
                             Write-Host "    Skipping system process: $($process.ProcessName)"
                         }}
                     }}
                 }} catch {{
-                    Write-Host "    Could not kill process PID: $pid - $_"
+                    Write-Host "    Could not kill process PID: $processId - $_"
                 }}
             }}
         }} else {{
@@ -622,8 +622,8 @@ Stop-Transcript
 Write-Host "Installation completed. Log saved to: $LogFile"
 '''
 
-    # PowerShell 스크립트를 Base64로 인코딩
-    ps_bytes = ps_script.encode('utf-16le')
+    # PowerShell 스크립트를 Base64로 인코딩 - certutil은 UTF-8 사용
+    ps_bytes = ps_script.encode('utf-8')
     ps_base64 = base64.b64encode(ps_bytes).decode('ascii')
 
     # Base64를 64자씩 나눔 (파일로 저장하기 위해)
@@ -631,33 +631,29 @@ Write-Host "Installation completed. Log saved to: $LogFile"
     for i in range(0, len(ps_base64), 64):
         b64_lines.append(ps_base64[i:i+64])
 
-    # echo 명령으로 변환 (각 줄마다)
-    b64_echo_commands = '\n'.join(f'echo {line}>>"%B64_FILE%"' for line in b64_lines)
+    # echo 명령으로 변환 (한 번에 실행하도록)
+    b64_echo_lines = '\n'.join(f'echo {line}' for line in b64_lines)
 
-    # BAT 파일 - VBScript 없이 PowerShell만 사용
+    # BAT 파일 - 워커노드 스타일 (간단하고 빠름)
     batch_script = f'''@echo off
 chcp 65001 >nul 2>&1
-
-REM Check if already running hidden
-if not "%1"=="HIDDEN" (
-    REM Re-run this script hidden using PowerShell Start-Process
-    powershell.exe -NoProfile -WindowStyle Hidden -Command "$psi = New-Object System.Diagnostics.ProcessStartInfo; $psi.FileName = 'cmd.exe'; $psi.Arguments = '/c \"\"%~f0\" HIDDEN\"'; $psi.WindowStyle = 'Hidden'; $psi.CreateNoWindow = $true; [System.Diagnostics.Process]::Start($psi)" >nul 2>&1
-    exit /b
-)
-
 setlocal enabledelayedexpansion
 
 REM Create error log file immediately
 set "ERROR_LOG=%USERPROFILE%\\Downloads\\central-bat-error.log"
-echo [%DATE% %TIME%] Starting Central Server Docker Runner (Hidden Mode) > "%ERROR_LOG%"
+echo [%DATE% %TIME%] Starting Central Server Docker Runner > "%ERROR_LOG%"
 
 REM Create temporary files
 set "TEMP_PS1=%TEMP%\\central-docker-runner-%RANDOM%.ps1"
 set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
 
-REM Write Base64 data to file (avoid command line length limit)
+REM Write Base64 data to file (certutil format) - Fast method
 echo [%DATE% %TIME%] Creating Base64 file... >> "%ERROR_LOG%"
-{b64_echo_commands}
+(
+echo -----BEGIN CERTIFICATE-----
+{b64_echo_lines}
+echo -----END CERTIFICATE-----
+) > "%B64_FILE%"
 
 if not exist "%B64_FILE%" (
     echo [%DATE% %TIME%] ERROR: Failed to create Base64 file >> "%ERROR_LOG%"
@@ -666,9 +662,9 @@ if not exist "%B64_FILE%" (
     exit /b 1
 )
 
-REM Decode Base64 file to PowerShell script
+REM Decode Base64 file to PowerShell script using certutil (faster and more reliable)
 echo [%DATE% %TIME%] Decoding PowerShell script... >> "%ERROR_LOG%"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$b64=Get-Content '%B64_FILE%' -Raw; $b64=$b64 -replace '\\s',''; $bytes=[Convert]::FromBase64String($b64); $text=[System.Text.Encoding]::Unicode.GetString($bytes); Set-Content -Path '%TEMP_PS1%' -Value $text -Encoding UTF8" 2>> "%ERROR_LOG%"
+certutil -decode "%B64_FILE%" "%TEMP_PS1%" >nul 2>&1
 
 REM Cleanup Base64 file
 del "%B64_FILE%" 2>nul
