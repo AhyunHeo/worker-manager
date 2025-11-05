@@ -474,40 +474,6 @@ WS_MESSAGE_QUEUE_SIZE=100
     Write-Host "Docker pull output: $pullOutput"
     Write-Host "Docker pull exit code: $LASTEXITCODE"
 
-    # 컨테이너 시작 전 포트 체크 및 정리
-    $statusLabel.Text = 'Checking and cleaning up ports...'
-    $progressBar.Value = 85
-    [System.Windows.Forms.Application]::DoEvents()
-
-    Write-Host "Checking if ports are in use..."
-    foreach ($port in $ports) {{
-        $connections = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-        if ($connections) {{
-            foreach ($conn in $connections) {{
-                $processId = $conn.OwningProcess
-                Write-Host "  WARNING: Port $port is in use by PID $processId"
-                try {{
-                    $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-                    if ($process) {{
-                        Write-Host "    Process: $($process.ProcessName) (PID: $processId)"
-                        # Don't kill system processes
-                        if ($process.ProcessName -ne "System" -and $process.ProcessName -ne "svchost") {{
-                            Write-Host "    Killing process: $($process.ProcessName)"
-                            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-                            Write-Host "    Process killed successfully"
-                        }} else {{
-                            Write-Host "    Skipping system process: $($process.ProcessName)"
-                        }}
-                    }}
-                }} catch {{
-                    Write-Host "    Could not kill process PID: $processId - $_"
-                }}
-            }}
-        }} else {{
-            Write-Host "  Port $port is free"
-        }}
-    }}
-
     # 컨테이너 시작
     $statusLabel.Text = 'Starting central server...'
     $progressBar.Value = 90
@@ -636,6 +602,9 @@ Write-Host "Installation completed. Log saved to: $LogFile"
 
     # BAT 파일 - 워커노드 스타일 (간단하고 빠름)
     batch_script = f'''@echo off
+REM Minimize the console window
+if not DEFINED IS_MINIMIZED set IS_MINIMIZED=1 && start "" /min "%~f0" %* && exit
+
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
