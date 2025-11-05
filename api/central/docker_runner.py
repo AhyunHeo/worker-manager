@@ -487,20 +487,23 @@ Write-Host "Installation completed. Log saved to: $LogFile"
     b64_echo_lines = '\n'.join(f'echo {line}' for line in b64_lines)
 
     # BAT 파일 - certutil을 사용한 Base64 디코딩
-    batch_script = f"""@echo off
+    batch_script = f'''@echo off
 chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
-echo =========================================
-echo Central Server Docker Runner
-echo =========================================
-echo.
+REM Check if running hidden
+if not "%1"=="HIDDEN" (
+    REM Create VBScript to run hidden
+    echo Set WshShell = CreateObject("WScript.Shell") > "%TEMP%\\run_hidden.vbs"
+    echo WshShell.Run "cmd.exe /c """"%~f0"" HIDDEN""", 0 >> "%TEMP%\\run_hidden.vbs"
+    cscript //nologo "%TEMP%\\run_hidden.vbs"
+    del "%TEMP%\\run_hidden.vbs"
+    exit
+)
 
 REM Create temporary files
 set "TEMP_PS1=%TEMP%\\central-docker-runner-%RANDOM%.ps1"
 set "B64_FILE=%TEMP%\\ps-script-%RANDOM%.b64"
-
-echo [INFO] Creating PowerShell script...
 
 REM Create Base64 file with proper format for certutil
 (
@@ -516,8 +519,7 @@ REM Cleanup Base64 file
 del "%B64_FILE%" 2>nul
 
 if not exist "%TEMP_PS1%" (
-    echo [ERROR] Failed to create PowerShell script
-    pause
+    powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Windows.Forms.MessageBox]::Show('Failed to create PowerShell script', 'Error', 'OK', 'Error')"
     exit /b 1
 )
 
@@ -533,11 +535,7 @@ if %errorLevel% == 0 (
     del "%TEMP_PS1%" 2>nul
 
     if !PS_EXIT! neq 0 (
-        echo.
-        echo [ERROR] Installation failed with exit code !PS_EXIT!
-        echo [ERROR] Check log: %USERPROFILE%\\Downloads\\central-ps-error.log
-        echo.
-        pause
+        powershell.exe -NoProfile -WindowStyle Hidden -Command "[System.Windows.Forms.MessageBox]::Show('Installation failed with exit code !PS_EXIT!`n`nCheck log: %USERPROFILE%\\Downloads\\central-ps-error.log', 'Error', 'OK', 'Error')"
     )
 ) else (
     REM Request admin privileges (hidden console, GUI only)
@@ -549,6 +547,6 @@ if %errorLevel% == 0 (
 )
 
 exit /b
-"""
-    
+'''
+
     return batch_script
