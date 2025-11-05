@@ -237,9 +237,9 @@ try {{
     # 주요 포트 목록 (중앙서버 + Worker Manager)
     $ports = @(3000, 8000, 5002, 5000, 8091, 5432, 27017)
 
-    # 기존 포트포워딩 규칙 삭제
+    # 기존 포트포워딩 규칙 삭제 (Docker 시작 전에 먼저 정리)
     $statusLabel.Text = 'Removing old port forwarding rules...'
-    $progressBar.Value = 54
+    $progressBar.Value = 52
     [System.Windows.Forms.Application]::DoEvents()
 
     Write-Host "Removing old port forwarding rules..."
@@ -249,61 +249,9 @@ try {{
     }}
     Write-Host "Old port forwarding rules removed"
 
-    # 새로운 포트포워딩 규칙 추가
-    $statusLabel.Text = 'Adding port forwarding rules...'
-    $progressBar.Value = 55
-    [System.Windows.Forms.Application]::DoEvents()
-
-    Write-Host "Adding port forwarding rules (WSL IP: $wslIP)..."
-    $portForwardSuccess = 0
-    foreach ($port in $ports) {{
-        Write-Host "  Adding port forwarding for port $port..."
-        $result = netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$port connectaddress=$wslIP connectport=$port 2>&1
-        if ($LASTEXITCODE -eq 0) {{
-            $portForwardSuccess++
-            Write-Host "    SUCCESS: Port $port forwarded"
-        }} else {{
-            Write-Host "    FAILED: Port $port - Exit code $LASTEXITCODE - $result"
-        }}
-    }}
-
-    Write-Host "Port forwarding: $portForwardSuccess/$($ports.Count) successful"
-
-    if ($portForwardSuccess -eq 0) {{
-        Write-Host "ERROR: All port forwarding rules failed"
-        throw "포트포워딩 규칙 추가에 실패했습니다. 관리자 권한으로 실행되고 있는지 확인하세요."
-    }}
-
-    # 방화벽 규칙 추가 (인바운드)
-    $statusLabel.Text = 'Configuring firewall rules...'
-    $progressBar.Value = 57
-    [System.Windows.Forms.Application]::DoEvents()
-
-    Write-Host "Adding firewall rules..."
-    $firewallSuccess = 0
-    foreach ($port in $ports) {{
-        $ruleName = "Central-Server-Port-$port"
-        Write-Host "  Adding firewall rule for port $port..."
-
-        # 기존 규칙 삭제
-        netsh advfirewall firewall delete rule name="$ruleName" 2>$null | Out-Null
-
-        # 새 규칙 추가
-        $result = netsh advfirewall firewall add rule name="$ruleName" dir=in action=allow protocol=TCP localport=$port 2>&1
-        if ($LASTEXITCODE -eq 0) {{
-            $firewallSuccess++
-            Write-Host "    SUCCESS: Firewall rule for port $port added"
-        }} else {{
-            Write-Host "    FAILED: Firewall rule for port $port - Exit code $LASTEXITCODE - $result"
-        }}
-    }}
-
-    Write-Host "Firewall rules: $firewallSuccess/$($ports.Count) successful"
-
-    if ($firewallSuccess -eq 0) {{
-        Write-Host "ERROR: All firewall rules failed"
-        throw "방화벽 규칙 추가에 실패했습니다. 관리자 권한으로 실행되고 있는지 확인하세요."
-    }}
+    # Wait for ports to be released
+    Write-Host "Waiting for ports to be released..."
+    Start-Sleep -Seconds 2
 
     # 작업 디렉토리 생성
     $statusLabel.Text = 'Preparing directories...'
@@ -526,6 +474,47 @@ WS_MESSAGE_QUEUE_SIZE=100
         Write-Host "Container status: $containerStatus"
         throw "일부 컨테이너가 시작되지 않았습니다. 컨테이너 수: $runningCount/6"
     }}
+
+    # 이제 Docker 컨테이너가 시작되었으니 포트포워딩과 방화벽 규칙 추가
+    $statusLabel.Text = 'Configuring network rules...'
+    $progressBar.Value = 95
+    [System.Windows.Forms.Application]::DoEvents()
+
+    # 포트포워딩 규칙 추가
+    Write-Host "Adding port forwarding rules (WSL IP: $wslIP)..."
+    $portForwardSuccess = 0
+    foreach ($port in $ports) {{
+        Write-Host "  Adding port forwarding for port $port..."
+        $result = netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=$port connectaddress=$wslIP connectport=$port 2>&1
+        if ($LASTEXITCODE -eq 0) {{
+            $portForwardSuccess++
+            Write-Host "    SUCCESS: Port $port forwarded"
+        }} else {{
+            Write-Host "    WARNING: Port $port forwarding failed - Exit code $LASTEXITCODE - $result"
+        }}
+    }}
+    Write-Host "Port forwarding: $portForwardSuccess/$($ports.Count) successful"
+
+    # 방화벽 규칙 추가
+    Write-Host "Adding firewall rules..."
+    $firewallSuccess = 0
+    foreach ($port in $ports) {{
+        $ruleName = "Central-Server-Port-$port"
+        Write-Host "  Adding firewall rule for port $port..."
+
+        # 기존 규칙 삭제
+        netsh advfirewall firewall delete rule name="$ruleName" 2>$null | Out-Null
+
+        # 새 규칙 추가
+        $result = netsh advfirewall firewall add rule name="$ruleName" dir=in action=allow protocol=TCP localport=$port 2>&1
+        if ($LASTEXITCODE -eq 0) {{
+            $firewallSuccess++
+            Write-Host "    SUCCESS: Firewall rule for port $port added"
+        }} else {{
+            Write-Host "    WARNING: Firewall rule for port $port failed - Exit code $LASTEXITCODE - $result"
+        }}
+    }}
+    Write-Host "Firewall rules: $firewallSuccess/$($ports.Count) successful"
 
     $progressBar.Value = 100
     $statusLabel.Text = 'Central server started successfully!'
