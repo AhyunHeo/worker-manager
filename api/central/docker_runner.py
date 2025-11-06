@@ -7,7 +7,6 @@ import json
 from models import Node
 import base64
 import os
-from .worker_manager import generate_worker_manager_installer
 
 # Global configuration - 환경변수에서 한 번만 로드
 LOCAL_SERVER_IP = os.getenv('LOCAL_SERVER_IP', '192.168.0.88')
