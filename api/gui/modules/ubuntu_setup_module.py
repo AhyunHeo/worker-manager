@@ -315,30 +315,30 @@ function Setup-Ubuntu {
                 
                 # 커스텀 입력 폼 생성
                 $form = New-Object System.Windows.Forms.Form
-                $form.Text = 'Ubuntu 사용자 계정 생성'
-                $form.Size = New-Object System.Drawing.Size(420, 350)
+                $form.Text = '시스템 사용자 계정 생성'
+                $form.Size = New-Object System.Drawing.Size(420, 390)
                 $form.StartPosition = 'CenterScreen'
                 $form.FormBorderStyle = 'FixedDialog'
                 $form.MaximizeBox = $false
                 $form.MinimizeBox = $false
                 $form.BackColor = [System.Drawing.Color]::White
-                
+
                 # 타이틀 라벨
                 $titleLabel = New-Object System.Windows.Forms.Label
                 $titleLabel.Location = New-Object System.Drawing.Point(15, 15)
                 $titleLabel.Size = New-Object System.Drawing.Size(380, 40)
-                $titleLabel.Text = "Ubuntu 22.04 사용자 계정을 생성합니다.`n아래 정보를 입력해주세요:"
+                $titleLabel.Text = "시스템 사용자 계정을 생성합니다.`n아래 정보를 입력해주세요:"
                 $titleLabel.Font = New-Object System.Drawing.Font('Segoe UI', 10)
                 $form.Controls.Add($titleLabel)
-                
+
                 # 사용자명 라벨
                 $usernameLabel = New-Object System.Windows.Forms.Label
                 $usernameLabel.Location = New-Object System.Drawing.Point(15, 70)
                 $usernameLabel.Size = New-Object System.Drawing.Size(380, 23)
-                $usernameLabel.Text = '사용자명: (영어 소문자, 숫자만 사용 가능)'
+                $usernameLabel.Text = '사용자명:'
                 $usernameLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9)
                 $form.Controls.Add($usernameLabel)
-                
+
                 # 사용자명 입력 필드
                 $usernameBox = New-Object System.Windows.Forms.TextBox
                 $usernameBox.Location = New-Object System.Drawing.Point(15, 95)
@@ -346,42 +346,60 @@ function Setup-Ubuntu {
                 $usernameBox.Font = New-Object System.Drawing.Font('Segoe UI', 10)
                 $usernameBox.Text = ''
                 $form.Controls.Add($usernameBox)
-                
+
+                # 사용자명 안내 레이블
+                $usernameHint = New-Object System.Windows.Forms.Label
+                $usernameHint.Location = New-Object System.Drawing.Point(15, 123)
+                $usernameHint.Size = New-Object System.Drawing.Size(380, 20)
+                $usernameHint.Text = '💡 영문 소문자로 시작, 소문자/숫자/_(밑줄)/-(하이픈) 사용 가능'
+                $usernameHint.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+                $usernameHint.ForeColor = [System.Drawing.Color]::FromArgb(100, 116, 139)
+                $form.Controls.Add($usernameHint)
+
                 # 비밀번호 라벨
                 $passwordLabel = New-Object System.Windows.Forms.Label
-                $passwordLabel.Location = New-Object System.Drawing.Point(15, 130)
+                $passwordLabel.Location = New-Object System.Drawing.Point(15, 153)
                 $passwordLabel.Size = New-Object System.Drawing.Size(120, 23)
                 $passwordLabel.Text = '비밀번호:'
                 $passwordLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9)
                 $form.Controls.Add($passwordLabel)
-                
+
                 # 비밀번호 입력 필드
                 $passwordBox = New-Object System.Windows.Forms.TextBox
-                $passwordBox.Location = New-Object System.Drawing.Point(15, 155)
+                $passwordBox.Location = New-Object System.Drawing.Point(15, 178)
                 $passwordBox.Size = New-Object System.Drawing.Size(380, 23)
                 $passwordBox.Font = New-Object System.Drawing.Font('Segoe UI', 10)
                 $passwordBox.PasswordChar = '●'
                 $form.Controls.Add($passwordBox)
-                
+
                 # 비밀번호 확인 라벨
                 $confirmLabel = New-Object System.Windows.Forms.Label
-                $confirmLabel.Location = New-Object System.Drawing.Point(15, 190)
+                $confirmLabel.Location = New-Object System.Drawing.Point(15, 213)
                 $confirmLabel.Size = New-Object System.Drawing.Size(120, 23)
                 $confirmLabel.Text = '비밀번호 확인:'
                 $confirmLabel.Font = New-Object System.Drawing.Font('Segoe UI', 9)
                 $form.Controls.Add($confirmLabel)
-                
+
                 # 비밀번호 확인 입력 필드
                 $confirmBox = New-Object System.Windows.Forms.TextBox
-                $confirmBox.Location = New-Object System.Drawing.Point(15, 215)
+                $confirmBox.Location = New-Object System.Drawing.Point(15, 238)
                 $confirmBox.Size = New-Object System.Drawing.Size(380, 23)
                 $confirmBox.Font = New-Object System.Drawing.Font('Segoe UI', 10)
                 $confirmBox.PasswordChar = '●'
                 $form.Controls.Add($confirmBox)
-                
+
+                # 비밀번호 안내 레이블
+                $passwordHint = New-Object System.Windows.Forms.Label
+                $passwordHint.Location = New-Object System.Drawing.Point(15, 266)
+                $passwordHint.Size = New-Object System.Drawing.Size(380, 20)
+                $passwordHint.Text = '💡 영문 대소문자, 숫자, 특수문자 사용 가능 (대소문자 구분)'
+                $passwordHint.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+                $passwordHint.ForeColor = [System.Drawing.Color]::FromArgb(100, 116, 139)
+                $form.Controls.Add($passwordHint)
+
                 # OK 버튼
                 $okButton = New-Object System.Windows.Forms.Button
-                $okButton.Location = New-Object System.Drawing.Point(210, 265)
+                $okButton.Location = New-Object System.Drawing.Point(210, 305)
                 $okButton.Size = New-Object System.Drawing.Size(90, 30)
                 $okButton.Text = '확인'
                 $okButton.Font = New-Object System.Drawing.Font('Segoe UI', 9)
@@ -391,10 +409,10 @@ function Setup-Ubuntu {
                 $okButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
                 $form.AcceptButton = $okButton
                 $form.Controls.Add($okButton)
-                
+
                 # 취소 버튼
                 $cancelButton = New-Object System.Windows.Forms.Button
-                $cancelButton.Location = New-Object System.Drawing.Point(305, 265)
+                $cancelButton.Location = New-Object System.Drawing.Point(305, 305)
                 $cancelButton.Size = New-Object System.Drawing.Size(90, 30)
                 $cancelButton.Text = '취소'
                 $cancelButton.Font = New-Object System.Drawing.Font('Segoe UI', 9)

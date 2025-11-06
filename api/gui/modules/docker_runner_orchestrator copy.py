@@ -267,26 +267,25 @@ function Install-DockerRunner {{
                 function Get-PasswordInput {{
                     param(
                         [string]$Message,
-                        [string]$Title,
-                        [string]$Username
+                        [string]$Title
                     )
-
+                    
                     $form = New-Object System.Windows.Forms.Form
                     $form.Text = $Title
-                    $form.Size = New-Object System.Drawing.Size(450, 280)
+                    $form.Size = New-Object System.Drawing.Size(450, 200)
                     $form.StartPosition = "CenterScreen"
                     $form.FormBorderStyle = "FixedDialog"
                     $form.MaximizeBox = $false
                     $form.MinimizeBox = $false
                     $form.TopMost = $true
-
+                    
                     # 메시지 레이블
                     $label = New-Object System.Windows.Forms.Label
                     $label.Location = New-Object System.Drawing.Point(10, 15)
                     $label.Size = New-Object System.Drawing.Size(420, 60)
                     $label.Text = $Message
                     $form.Controls.Add($label)
-
+                    
                     # 비밀번호 입력 텍스트박스 (마스킹)
                     $textBox = New-Object System.Windows.Forms.TextBox
                     $textBox.Location = New-Object System.Drawing.Point(10, 85)
@@ -294,159 +293,30 @@ function Install-DockerRunner {{
                     $textBox.PasswordChar = '*'
                     $textBox.Font = New-Object System.Drawing.Font("Segoe UI", 10)
                     $form.Controls.Add($textBox)
-
-                    # 안내 레이블 (사용 가능 문자 설명)
-                    $hintLabel = New-Object System.Windows.Forms.Label
-                    $hintLabel.Location = New-Object System.Drawing.Point(10, 115)
-                    $hintLabel.Size = New-Object System.Drawing.Size(420, 35)
-                    $hintLabel.Text = "💡 영문 대소문자, 숫자, 특수문자 사용 가능 (대소문자 구분)"
-                    $hintLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-                    $hintLabel.ForeColor = [System.Drawing.Color]::FromArgb(100, 116, 139)
-                    $form.Controls.Add($hintLabel)
-
-                    # 비밀번호 초기화 버튼
-                    $resetButton = New-Object System.Windows.Forms.Button
-                    $resetButton.Location = New-Object System.Drawing.Point(10, 155)
-                    $resetButton.Size = New-Object System.Drawing.Size(150, 30)
-                    $resetButton.Text = "🔄 비밀번호 초기화"
-                    $resetButton.BackColor = [System.Drawing.Color]::FromArgb(255, 152, 0)
-                    $resetButton.ForeColor = [System.Drawing.Color]::White
-                    $resetButton.FlatStyle = "Flat"
-                    $resetButton.Add_Click({{
-                        $confirmResult = [System.Windows.Forms.MessageBox]::Show(
-                            "비밀번호를 초기화하고 새로 설정하시겠습니까?`n`n'$Username' 계정의 비밀번호를 재설정합니다.",
-                            "비밀번호 초기화 확인",
-                            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                            [System.Windows.Forms.MessageBoxIcon]::Warning
-                        )
-
-                        if ($confirmResult -eq [System.Windows.Forms.DialogResult]::Yes) {{
-                            # 새 비밀번호 입력 폼
-                            $newPassForm = New-Object System.Windows.Forms.Form
-                            $newPassForm.Text = "새 비밀번호 설정"
-                            $newPassForm.Size = New-Object System.Drawing.Size(400, 260)
-                            $newPassForm.StartPosition = "CenterScreen"
-                            $newPassForm.FormBorderStyle = "FixedDialog"
-                            $newPassForm.TopMost = $true
-
-                            $newPassLabel = New-Object System.Windows.Forms.Label
-                            $newPassLabel.Location = New-Object System.Drawing.Point(10, 15)
-                            $newPassLabel.Size = New-Object System.Drawing.Size(370, 30)
-                            $newPassLabel.Text = "새 비밀번호를 입력하세요:"
-                            $newPassForm.Controls.Add($newPassLabel)
-
-                            $newPassBox1 = New-Object System.Windows.Forms.TextBox
-                            $newPassBox1.Location = New-Object System.Drawing.Point(10, 50)
-                            $newPassBox1.Size = New-Object System.Drawing.Size(370, 25)
-                            $newPassBox1.PasswordChar = '*'
-                            $newPassForm.Controls.Add($newPassBox1)
-
-                            $confirmPassLabel = New-Object System.Windows.Forms.Label
-                            $confirmPassLabel.Location = New-Object System.Drawing.Point(10, 85)
-                            $confirmPassLabel.Size = New-Object System.Drawing.Size(370, 30)
-                            $confirmPassLabel.Text = "비밀번호 확인:"
-                            $newPassForm.Controls.Add($confirmPassLabel)
-
-                            $newPassBox2 = New-Object System.Windows.Forms.TextBox
-                            $newPassBox2.Location = New-Object System.Drawing.Point(10, 120)
-                            $newPassBox2.Size = New-Object System.Drawing.Size(370, 25)
-                            $newPassBox2.PasswordChar = '*'
-                            $newPassForm.Controls.Add($newPassBox2)
-
-                            # 안내 레이블
-                            $newPassHint = New-Object System.Windows.Forms.Label
-                            $newPassHint.Location = New-Object System.Drawing.Point(10, 150)
-                            $newPassHint.Size = New-Object System.Drawing.Size(370, 35)
-                            $newPassHint.Text = "💡 영문 대소문자, 숫자, 특수문자 사용 가능 (대소문자 구분)"
-                            $newPassHint.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-                            $newPassHint.ForeColor = [System.Drawing.Color]::FromArgb(100, 116, 139)
-                            $newPassForm.Controls.Add($newPassHint)
-
-                            $newPassOk = New-Object System.Windows.Forms.Button
-                            $newPassOk.Location = New-Object System.Drawing.Point(210, 190)
-                            $newPassOk.Size = New-Object System.Drawing.Size(80, 30)
-                            $newPassOk.Text = "설정"
-                            $newPassOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
-                            $newPassForm.AcceptButton = $newPassOk
-                            $newPassForm.Controls.Add($newPassOk)
-
-                            $newPassCancel = New-Object System.Windows.Forms.Button
-                            $newPassCancel.Location = New-Object System.Drawing.Point(300, 190)
-                            $newPassCancel.Size = New-Object System.Drawing.Size(80, 30)
-                            $newPassCancel.Text = "취소"
-                            $newPassCancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-                            $newPassForm.CancelButton = $newPassCancel
-                            $newPassForm.Controls.Add($newPassCancel)
-
-                            $newPassResult = $newPassForm.ShowDialog()
-
-                            if ($newPassResult -eq [System.Windows.Forms.DialogResult]::OK) {{
-                                if ($newPassBox1.Text -ne $newPassBox2.Text) {{
-                                    [System.Windows.Forms.MessageBox]::Show(
-                                        "비밀번호가 일치하지 않습니다.",
-                                        "오류",
-                                        [System.Windows.Forms.MessageBoxButtons]::OK,
-                                        [System.Windows.Forms.MessageBoxIcon]::Error
-                                    )
-                                }} elseif ([string]::IsNullOrWhiteSpace($newPassBox1.Text)) {{
-                                    [System.Windows.Forms.MessageBox]::Show(
-                                        "비밀번호를 입력해주세요.",
-                                        "오류",
-                                        [System.Windows.Forms.MessageBoxButtons]::OK,
-                                        [System.Windows.Forms.MessageBoxIcon]::Error
-                                    )
-                                }} else {{
-                                    # WSL root 권한으로 비밀번호 변경
-                                    $newPass = $newPassBox1.Text
-                                    $resetCmd = "echo '$Username`:$newPass' | chpasswd"
-                                    wsl -u root bash -c $resetCmd 2>&1 | Out-Null
-
-                                    if ($LASTEXITCODE -eq 0) {{
-                                        [System.Windows.Forms.MessageBox]::Show(
-                                            "비밀번호가 성공적으로 초기화되었습니다.`n새 비밀번호로 다시 시도해주세요.",
-                                            "초기화 완료",
-                                            [System.Windows.Forms.MessageBoxButtons]::OK,
-                                            [System.Windows.Forms.MessageBoxIcon]::Information
-                                        )
-                                        $textBox.Text = $newPass
-                                        $textBox.Select()
-                                    }} else {{
-                                        [System.Windows.Forms.MessageBox]::Show(
-                                            "비밀번호 초기화에 실패했습니다.`n시스템 환경을 확인해주세요.",
-                                            "오류",
-                                            [System.Windows.Forms.MessageBoxButtons]::OK,
-                                            [System.Windows.Forms.MessageBoxIcon]::Error
-                                        )
-                                    }}
-                                }}
-                            }}
-                        }}
-                    }})
-                    $form.Controls.Add($resetButton)
-
+                    
                     # OK 버튼
                     $okButton = New-Object System.Windows.Forms.Button
-                    $okButton.Location = New-Object System.Drawing.Point(260, 195)
+                    $okButton.Location = New-Object System.Drawing.Point(260, 120)
                     $okButton.Size = New-Object System.Drawing.Size(80, 30)
                     $okButton.Text = "확인"
                     $okButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
                     $form.AcceptButton = $okButton
                     $form.Controls.Add($okButton)
-
+                    
                     # Cancel 버튼
                     $cancelButton = New-Object System.Windows.Forms.Button
-                    $cancelButton.Location = New-Object System.Drawing.Point(350, 195)
+                    $cancelButton.Location = New-Object System.Drawing.Point(350, 120)
                     $cancelButton.Size = New-Object System.Drawing.Size(80, 30)
                     $cancelButton.Text = "취소"
                     $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
                     $form.CancelButton = $cancelButton
                     $form.Controls.Add($cancelButton)
-
+                    
                     # 포커스 설정
                     $form.Add_Shown({{ $textBox.Select() }})
-
+                    
                     $result = $form.ShowDialog()
-
+                    
                     if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
                         return $textBox.Text
                     }}
@@ -462,13 +332,13 @@ function Install-DockerRunner {{
                     
                     # 남은 시도 횟수 표시
                     $attemptsRemaining = $maxAttempts - $attemptCount + 1
-                    $promptMessage = "'$currentUser' 계정의 관리자 비밀번호를 입력하세요.`n`n"
-                    $promptMessage += "이 비밀번호는 설치 권한을 위해 필요합니다."
+                    $promptMessage = "Ubuntu 사용자 '$currentUser'의 sudo 비밀번호를 입력하세요.`n`n"
+                    $promptMessage += "이 비밀번호는 Docker 설치 권한을 위해 필요합니다."
                     if ($attemptCount -gt 1) {{
                         $promptMessage += "`n`n⚠️ 비밀번호가 틀렸습니다. 남은 시도 횟수: $attemptsRemaining회"
                     }}
-
-                    $password = Get-PasswordInput -Message $promptMessage -Title "사용자 비밀번호 (시도 $attemptCount/$maxAttempts)" -Username $currentUser
+                    
+                    $password = Get-PasswordInput -Message $promptMessage -Title "Ubuntu 사용자 비밀번호 (시도 $attemptCount/$maxAttempts)"
                     
                     if ([string]::IsNullOrWhiteSpace($password)) {{
                         # 사용자가 취소한 경우

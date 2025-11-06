@@ -624,11 +624,12 @@ function Start-CompleteSetup {{
     }}
     
     # Step 2: Docker 환경 설정 (모듈화된 함수 사용)
-    $statusLabel.Text = "Step 2/2: Docker 환경 설정 중..."
-    $detailLabel.Text = "Ubuntu, Docker, 컨테이너를 설치하고 있습니다."
+    $statusLabel.Text = "Step 2/2: 환경 구성 중..."
+    $detailLabel.Text = "처음 설치 시 5분 정도 소요됩니다. 잠시만 기다려주세요..."
+    $detailLabel.ForeColor = [System.Drawing.Color]::FromArgb(255, 152, 0)
     $progressBar.Value = 55
     [System.Windows.Forms.Application]::DoEvents()
-    Update-Progress 'Step 2: Docker 환경 설정' 55
+    Update-Progress 'Step 2: 환경 구성 중' 55
     
     # Docker Compose 진행 상황 추적을 위한 타이머
     $global:dockerComposeTimer = New-Object System.Windows.Forms.Timer
@@ -642,16 +643,18 @@ function Start-CompleteSetup {{
             
             # 진행 상태에 따른 메시지 변경
             if ($minutes -eq 0 -and $seconds -lt 10) {{
-                $detailLabel.Text = "Docker 이미지 확인 중... ($($seconds)초 경과)"
+                $detailLabel.Text = "환경을 준비하고 있습니다... ($($seconds)초 경과)"
             }} elseif ($minutes -eq 0 -and $seconds -lt 30) {{
-                $detailLabel.Text = "Docker 이미지 메타데이터 다운로드 중... ($($seconds)초 경과)"
+                $detailLabel.Text = "필요한 파일을 확인하고 있습니다... ($($seconds)초 경과)"
             }} elseif ($minutes -lt 2) {{
-                $detailLabel.Text = "Docker 이미지 다운로드 중... ($($minutes)분 $($seconds)초 경과)"
-                $statusLabel.Text = "Step 2/2: Docker 이미지를 받고 있습니다. 네트워크 속도에 따라 시간이 소요됩니다."
+                $detailLabel.Text = "파일을 다운로드하고 있습니다... ($($minutes)분 $($seconds)초 경과)"
+                $statusLabel.Text = "Step 2/2: 환경 구성 중 - 네트워크 속도에 따라 시간이 소요됩니다"
+            }} elseif ($minutes -lt 5) {{
+                $detailLabel.Text = "설치가 진행 중입니다... ($($minutes)분 $($seconds)초 경과) - 조금만 기다려주세요"
             }} else {{
-                $detailLabel.Text = "대용량 이미지 다운로드 중... ($($minutes)분 $($seconds)초 경과) - 조금만 기다려주세요"
-                if ($minutes -gt 5) {{
-                    $detailLabel.Text += " (네트워크가 느린 것 같습니다)"
+                $detailLabel.Text = "거의 완료되었습니다... ($($minutes)분 $($seconds)초 경과)"
+                if ($minutes -gt 7) {{
+                    $detailLabel.Text += " (네트워크 상태를 확인해주세요)"
                 }}
             }}
             
@@ -674,7 +677,11 @@ function Start-CompleteSetup {{
             Cleanup-OnExit -IsError $true -ErrorMessage "사용자가 설치를 취소했습니다."
             return
         }}
-        
+
+        # 타이머 시작 (설치 시작 전)
+        $global:dockerComposeStartTime = Get-Date
+        $dockerComposeTimer.Start()
+
         # GUI 응답성 유지하면서 Docker 설치
         $dockerResult = Install-DockerRunner
         
@@ -687,29 +694,28 @@ function Start-CompleteSetup {{
         # 설치 중 취소 확인
         if ($global:installationCancelled) {{
             Write-Host "Installation cancelled during Docker install"
-            throw "Installation cancelled by user"
-        }}
-        
-        if ($dockerResult) {{
+            $installationSuccessful = $false
+            # 취소는 예외로 처리하지 않음
+        }} elseif ($dockerResult) {{
             $installationSuccessful = $true
         }} else {{
             # Docker 설치가 실패했거나 취소됨
             $installationSuccessful = $false
             Write-Host "[INFO] Docker installation returned false - setup incomplete"
-            Update-Progress "Docker 설치가 완료되지 않았습니다." 55
+            Update-Progress "설치가 완료되지 않았습니다." 55
         }}
     }} catch {{
         $global:isInstalling = $false
         Write-Host "[ERROR] Docker installation exception: $_"
-        Update-Progress "Docker 설치 예외 발생: $_" 55
-        
-        $statusLabel.Text = "Docker 설치 중 오류 발생"
+        Update-Progress "설치 예외 발생: $_" 55
+
+        $statusLabel.Text = "설치 중 오류 발생"
         $detailLabel.Text = $_
         $statusLabel.ForeColor = [System.Drawing.Color]::Red
         $progressBar.Value = 0
-        
+
         # 에러 시 정리
-        $errorMsg = "Docker 환경 설치 중 예외가 발생했습니다: $_"
+        $errorMsg = "환경 설치 중 예외가 발생했습니다: $_"
         
         $startButton.Enabled = $false
         $startButton.Text = '실패'
@@ -733,53 +739,54 @@ function Start-CompleteSetup {{
         
         return
     }}
-    
+
+    # 최종 설치 취소 확인 (실패 확인보다 먼저 체크)
+    if ($global:installationCancelled) {{
+        $global:isInstalling = $false
+        $statusLabel.Text = "설치가 취소되었습니다."
+        $statusLabel.ForeColor = [System.Drawing.Color]::Orange
+        $detailLabel.Text = "사용자가 설치를 취소했습니다."
+        $progressBar.Value = 0
+
+        # 취소는 에러가 아니므로 IsError = $false
+        Cleanup-OnExit -IsError $false -ErrorMessage ""
+
+        $startButton.Enabled = $true
+        $startButton.Text = '다시 시작'
+        $startButton.Visible = $true
+        $closeButton.Text = '닫기'
+        $closeButton.Enabled = $true
+        return
+    }}
+
     if (-not $installationSuccessful) {{
         $global:isInstalling = $false
-        $statusLabel.Text = "Docker 환경 설정 실패"
+        $statusLabel.Text = "환경 설정 실패"
         $detailLabel.Text = "로그를 확인하여 문제를 해결하세요."
         $statusLabel.ForeColor = [System.Drawing.Color]::Red
-        Update-Progress 'Docker 환경 설정 실패.' 55
-        
+        Update-Progress '환경 설정 실패.' 55
+
         # 에러 시 정리
         $progressBar.Value = 0
         $startButton.Enabled = $false
         $startButton.Text = '실패'
         $closeButton.Text = '종료'
         $closeButton.Enabled = $true
-        
+
         # GUI를 응답 가능한 상태로 유지
         [System.Windows.Forms.Application]::DoEvents()
-        
+
         # 비동기로 종료 처리
         $timer = New-Object System.Windows.Forms.Timer
         $timer.Interval = 3000
         $timer.Add_Tick({{
             $timer.Stop()
-            Cleanup-OnExit -IsError $true -ErrorMessage "Docker 환경 설정에 실패했습니다."
+            Cleanup-OnExit -IsError $true -ErrorMessage "환경 설정에 실패했습니다."
             $form.Close()
             [Environment]::Exit(1)
         }})
         $timer.Start()
-        
-        return
-    }}
-    
-    # 최종 설치 취소 확인
-    if ($global:installationCancelled) {{
-        $global:isInstalling = $false
-        $statusLabel.Text = "설치가 취소되었습니다."
-        $statusLabel.ForeColor = [System.Drawing.Color]::Orange
-        $detailLabel.Text = "사용자 요청에 의해 취소됨"
-        $progressBar.Value = 0
-        
-        Cleanup-OnExit -IsError $true -ErrorMessage "사용자가 설치를 취소했습니다."
-        
-        $startButton.Enabled = $true
-        $startButton.Text = '다시 시작'
-        $startButton.Visible = $true
-        $closeButton.Text = '닫기'
-        $closeButton.Enabled = $true
+
         return
     }}
     
