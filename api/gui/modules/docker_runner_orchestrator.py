@@ -487,20 +487,49 @@ function Install-DockerRunner {{
                         continue
                     }}
                     
-                    # sudo 권한 설정 시도
+                    # sudo 권한 설정 시도 (비동기로 처리하여 GUI 응답성 유지)
                     Update-Progress "비밀번호 확인 중... (시도 $attemptCount/$maxAttempts)" 55
-                    $sudoResult = wsl -d $distroName -- bash -c "echo '$password' | sudo -S echo 'Password check successful' 2>&1"
-                    
+                    [System.Windows.Forms.Application]::DoEvents()
+
+                    # Job으로 비동기 실행
+                    $checkBlock = {{
+                        param($distro, $pass)
+                        wsl -d $distro -- bash -c "echo '$pass' | sudo -S echo 'Password check successful' 2>&1"
+                    }}
+
+                    $checkJob = Start-Job -ScriptBlock $checkBlock -ArgumentList $distroName, $password
+
+                    # 최대 10초 대기하면서 GUI 응답성 유지
+                    $checkTimeout = 10
+                    $checkElapsed = 0
+                    while ($checkJob.State -eq 'Running' -and $checkElapsed -lt $checkTimeout) {{
+                        Start-Sleep -Milliseconds 100  # 0.1초마다 체크
+                        $checkElapsed += 0.1
+                        [System.Windows.Forms.Application]::DoEvents()
+                    }}
+
+                    # Job 결과 가져오기
+                    if ($checkJob.State -eq 'Running') {{
+                        Stop-Job $checkJob
+                        Remove-Job $checkJob -Force
+                        $sudoResult = ""
+                    }} else {{
+                        $sudoResult = Receive-Job $checkJob
+                        Remove-Job $checkJob
+                    }}
+
                     if ($sudoResult -like "*Password check successful*") {{
                         # 비밀번호 성공
                         $passwordSuccess = $true
-                        
+
                         # NOPASSWD 설정 추가
                         Update-Progress "sudo 권한 설정 중..." 55
                         wsl -d $distroName -- bash -c "echo '$password' | sudo -S bash -c 'echo `"$currentUser ALL=(ALL) NOPASSWD:ALL`" >> /etc/sudoers'" 2>&1 | Out-Null
                         Update-Progress "✓ sudo 권한 설정 완료" 55
                     }} else {{
                         # 비밀번호 실패
+                        Write-Host "[WARNING] 비밀번호가 틀렸습니다. (시도 $attemptCount/$maxAttempts)"
+
                         if ($attemptCount -eq $maxAttempts) {{
                             # 최대 시도 횟수 초과
                             Update-Progress "비밀번호 인증 실패 (최대 시도 횟수 초과)" 55
@@ -511,9 +540,17 @@ function Install-DockerRunner {{
                                 [System.Windows.Forms.MessageBoxIcon]::Error
                             )
                             return $false
+                        }} else {{
+                            # 다시 시도 - 사용자에게 즉시 피드백
+                            $retriesLeft = $maxAttempts - $attemptCount
+                            [System.Windows.Forms.MessageBox]::Show(
+                                "비밀번호가 올바르지 않습니다.`n`n남은 시도 횟수: $retriesLeft회",
+                                "비밀번호 확인",
+                                [System.Windows.Forms.MessageBoxButtons]::OK,
+                                [System.Windows.Forms.MessageBoxIcon]::Warning
+                            )
+                            [System.Windows.Forms.Application]::DoEvents()
                         }}
-                        # 다시 시도
-                        Write-Host "[WARNING] 비밀번호가 틀렸습니다. (시도 $attemptCount/$maxAttempts)"
                     }}
                 }}
                 

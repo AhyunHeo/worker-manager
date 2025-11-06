@@ -339,7 +339,11 @@ function Deploy-Container {
             Write-Host "[DEBUG] Stopping and removing existing containers..."
             wsl -d $DistroName -- docker stop $containerName 2>$null
             wsl -d $DistroName -- docker rm -f $containerName 2>$null
-            Start-Sleep -Seconds 1
+            # GUI 응답성 유지하면서 1초 대기
+            for ($i = 0; $i -lt 10; $i++) {
+                Start-Sleep -Milliseconds 100
+                [System.Windows.Forms.Application]::DoEvents()
+            }
         }
         
         # Docker Compose 실행
@@ -439,7 +443,11 @@ function Deploy-Container {
                 Write-Host "[DEBUG] Removing existing container: $existingContainers"
                 wsl -d $DistroName -- docker stop $containerName 2>$null
                 wsl -d $DistroName -- docker rm -f $containerName 2>$null
-                Start-Sleep -Seconds 1
+                # GUI 응답성 유지하면서 1초 대기
+                for ($i = 0; $i -lt 10; $i++) {
+                    Start-Sleep -Milliseconds 100
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
             }
             
             # 이미지 체크
@@ -504,8 +512,12 @@ function Deploy-Container {
         
         # 실행 후 컨테이너 상태 즉시 확인
         Write-Host "[DEBUG] Checking container status after docker-compose..."
-        Start-Sleep -Seconds 2
-        
+        # GUI 응답성 유지하면서 2초 대기
+        for ($i = 0; $i -lt 20; $i++) {
+            Start-Sleep -Milliseconds 100
+            [System.Windows.Forms.Application]::DoEvents()
+        }
+
         # 컨테이너 목록 확인
         $allContainers = wsl -d $DistroName -- docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.State}}" 2>&1
         Write-Host "[DEBUG] All containers:"

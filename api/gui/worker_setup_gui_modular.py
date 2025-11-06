@@ -498,27 +498,25 @@ $form.Controls.Add($closeButton)
 # 간단한 Update Progress 함수 (로그 파일에만 기록)
 function Update-Progress {{
     param($message, $percent)
-    
+
     # 콘솔 출력 (로그 파일로 리디렉션됨)
     Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $message"
-    
+
     # 주요 단계만 GUI에 표시
-    if ($message -match 'Step \d+:' -or $message -match '완료' -or $message -match '실패') {{
+    if ($message -match 'Step \d+:' -or $message -match '완료' -or $message -match '실패' -or $message -match '확인' -or $message -match '설정') {{
         $statusLabel.Text = $message
     }}
-    
+
     # 프로그레스바 업데이트
     if ($percent) {{
         if ($percent -ge 0 -and $percent -le 100) {{
             $progressBar.Value = $percent
         }}
     }}
-    
-    # 최소한의 GUI 업데이트 (성능 최적화)
-    if ($percent % 10 -eq 0) {{
-        [System.Windows.Forms.Application]::DoEvents()
-    }}
-    
+
+    # GUI 응답성을 위해 항상 DoEvents 호출
+    [System.Windows.Forms.Application]::DoEvents()
+
     # 취소 확인
     if ($global:installationCancelled) {{
         return $false

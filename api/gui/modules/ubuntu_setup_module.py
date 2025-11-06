@@ -102,7 +102,11 @@ function Setup-Ubuntu {
             if ($versionCheck -notmatch '2$') {
                 Write-Host "[DEBUG] Converting $targetDistro to WSL2"
                 wsl --set-version $targetDistro 2
-                Start-Sleep -Seconds 5
+                # GUI 응답성 유지하면서 5초 대기
+                for ($i = 0; $i -lt 50; $i++) {
+                    Start-Sleep -Milliseconds 100
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
             }
             
             return @{
@@ -121,7 +125,11 @@ function Setup-Ubuntu {
             if ($ForceReinstall -and $ubuntuDistro) {
                 Write-Host "[DEBUG] Unregistering existing Ubuntu: $ubuntuDistro"
                 wsl --unregister $ubuntuDistro
-                Start-Sleep -Seconds 3
+                # GUI 응답성 유지하면서 3초 대기
+                for ($i = 0; $i -lt 30; $i++) {
+                    Start-Sleep -Milliseconds 100
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
             }
             
             # WSL 기본 버전을 2로 설정
@@ -133,7 +141,11 @@ function Setup-Ubuntu {
             
             # 먼저 wsl --install로 기본 구성 요소 확인
             wsl --install --no-distribution 2>$null | Out-Null
-            Start-Sleep -Seconds 2
+            # GUI 응답성 유지하면서 2초 대기
+            for ($i = 0; $i -lt 20; $i++) {
+                Start-Sleep -Milliseconds 100
+                [System.Windows.Forms.Application]::DoEvents()
+            }
             
             # Ubuntu-22.04 자동 설치 (GUI에서 완전 자동화)
             Write-Host "========================================"
