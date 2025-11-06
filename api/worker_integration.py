@@ -321,17 +321,24 @@ async def worker_setup_page():
                 }}
             }});
             
+            function openInNewTab() {{
+                const url = document.getElementById('installUrl').value;
+                if (url) {{
+                    window.open(url, '_blank');
+                }}
+            }}
+
             function copyUrl() {{
                 const urlInput = document.getElementById('installUrl');
                 urlInput.select();
                 document.execCommand('copy');
-                
+
                 // 복사 완료 피드백
                 const btn = event.target;
                 const originalText = btn.textContent;
                 btn.textContent = '✅ 복사됨!';
                 btn.style.background = '#28a745';
-                
+
                 setTimeout(() => {{
                     btn.textContent = originalText;
                 }}, 2000);

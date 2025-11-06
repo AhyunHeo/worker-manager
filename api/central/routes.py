@@ -375,6 +375,13 @@ async def central_setup_page():
                 }, 2000);
             }
 
+            function openInNewTab() {
+                const url = document.getElementById('installUrl').value;
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            }
+
             function copyUrl() {
                 const urlInput = document.getElementById('installUrl');
                 urlInput.select();
@@ -390,7 +397,7 @@ async def central_setup_page():
                     btn.textContent = originalText;
                 }, 2000);
             }
-            
+
             function isValidIP(ip) {
                 const parts = ip.split('.');
                 if (parts.length !== 4) return false;

@@ -94,6 +94,8 @@ $closeButton.Enabled = $false
 $closeButton.Add_Click({{
     $form.Close()
     [System.Windows.Forms.Application]::Exit()
+    # PowerShell 프로세스 완전 종료
+    Stop-Process -Id $PID -Force
 }})
 $form.Controls.Add($closeButton)
 
@@ -586,6 +588,9 @@ while ($form.Visible) {{
 
 Stop-Transcript
 Write-Host "Installation completed. Log saved to: $LogFile"
+
+# PowerShell 프로세스 완전 종료
+[System.Environment]::Exit(0)
 '''
 
     # PowerShell 스크립트를 Base64로 인코딩 - certutil은 UTF-8 사용

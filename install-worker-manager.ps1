@@ -100,8 +100,11 @@ try {
     $closeButton.Size = New-Object System.Drawing.Size(100, 30)
     $closeButton.Enabled = $false
     $closeButton.Add_Click({
+        Write-Log "[INFO] Close button clicked - terminating process"
         $form.Close()
         [System.Windows.Forms.Application]::Exit()
+        # PowerShell 프로세스 완전 종료
+        Stop-Process -Id $PID -Force
     })
     $form.Controls.Add($closeButton)
 
@@ -420,3 +423,7 @@ if ($form) {
         Start-Sleep -Milliseconds 100
     }
 }
+
+# 폼이 닫힌 후 프로세스 완전 종료
+Write-Log "[INFO] Exiting installation script"
+[System.Environment]::Exit(0)
