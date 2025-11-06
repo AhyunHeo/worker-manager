@@ -3,7 +3,7 @@
 Worker Manager Web Dashboard
 """
 
-from flask import Flask, render_template_string, jsonify, request, redirect, url_for
+from flask import Flask, render_template_string, jsonify, request, redirect, url_for, make_response
 import requests
 import json
 from datetime import datetime
@@ -1544,10 +1544,10 @@ def api_proxy(path):
             'Authorization': request.headers.get('Authorization', f'Bearer {API_TOKEN}'),
             'Content-Type': 'application/json'
         }
-        
+
         # API URL 구성 - 내부 통신용 URL 사용
         url = f"{API_URL_INTERNAL}/api/{path}"
-        
+
         # 요청 전달
         if request.method == 'GET':
             response = requests.get(url, headers=headers, params=request.args)
@@ -1557,9 +1557,26 @@ def api_proxy(path):
             response = requests.put(url, headers=headers, json=request.get_json())
         elif request.method == 'DELETE':
             response = requests.delete(url, headers=headers)
-        
-        # 응답 반환
-        return response.json(), response.status_code
+
+        # 파일 다운로드 응답인 경우 바이너리 데이터 그대로 전달
+        content_type = response.headers.get('Content-Type', '')
+        if 'application/x-msdos-program' in content_type or 'application/octet-stream' in content_type or path.startswith('download/'):
+            # 바이너리 데이터를 그대로 전달
+            flask_response = make_response(response.content)
+            flask_response.status_code = response.status_code
+
+            # 응답 헤더 복사 (Content-Type, Content-Disposition 등)
+            for key, value in response.headers.items():
+                if key.lower() not in ['content-encoding', 'content-length', 'transfer-encoding', 'connection']:
+                    flask_response.headers[key] = value
+
+            return flask_response
+
+        # JSON 응답 처리
+        try:
+            return response.json(), response.status_code
+        except:
+            return response.text, response.status_code
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

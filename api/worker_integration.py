@@ -1399,18 +1399,26 @@ async def get_worker_status(node_id: str, db: Session = Depends(get_db)):
 @router.get("/api/download/{node_id}/setup-gui")
 async def download_setup_gui(node_id: str, db: Session = Depends(get_db)):
     """워커노드 통합 설치 프로그램 다운로드"""
-    # 노드 조회
-    node = db.query(Node).filter(Node.node_id == node_id).first()
-
-    if not node:
-        raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
-
-    if not GUI_MODULE_AVAILABLE:
-        raise HTTPException(status_code=500, detail="Setup-GUI module not available")
-
-    # setup-gui 배치 파일 생성
     try:
+        logger.info(f"Download request for setup-gui: {node_id}")
+
+        # 노드 조회
+        node = db.query(Node).filter(Node.node_id == node_id).first()
+
+        if not node:
+            logger.error(f"Node not found: {node_id}")
+            raise HTTPException(status_code=404, detail=f"Node {node_id} not found")
+
+        logger.info(f"Node found: {node_id}, docker_env_vars: {node.docker_env_vars}")
+
+        if not GUI_MODULE_AVAILABLE:
+            logger.error("GUI module not available")
+            raise HTTPException(status_code=500, detail="Setup-GUI module not available")
+
+        # setup-gui 배치 파일 생성
+        logger.info(f"Generating setup script for {node_id}")
         setup_script = generate_worker_setup_gui_modular(node)
+        logger.info(f"Setup script generated successfully for {node_id}, length: {len(setup_script)}")
 
         # 파일명 생성
         filename = f"DistributedAI_v2.0-worker-setup-{node_id}.bat"
@@ -1424,6 +1432,10 @@ async def download_setup_gui(node_id: str, db: Session = Depends(get_db)):
                 "Content-Type": "application/x-msdos-program"
             }
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to generate setup-gui for {node_id}: {e}")
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"Failed to generate setup-gui for {node_id}: {e}\n{error_detail}")
         raise HTTPException(status_code=500, detail=f"Failed to generate setup file: {str(e)}")
