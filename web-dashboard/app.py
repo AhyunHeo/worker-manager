@@ -1548,15 +1548,15 @@ def api_proxy(path):
         # API URL 구성 - 내부 통신용 URL 사용
         url = f"{API_URL_INTERNAL}/api/{path}"
 
-        # 요청 전달
+        # 요청 전달 (timeout 추가)
         if request.method == 'GET':
-            response = requests.get(url, headers=headers, params=request.args)
+            response = requests.get(url, headers=headers, params=request.args, timeout=60)
         elif request.method == 'POST':
-            response = requests.post(url, headers=headers, json=request.get_json())
+            response = requests.post(url, headers=headers, json=request.get_json(), timeout=30)
         elif request.method == 'PUT':
-            response = requests.put(url, headers=headers, json=request.get_json())
+            response = requests.put(url, headers=headers, json=request.get_json(), timeout=30)
         elif request.method == 'DELETE':
-            response = requests.delete(url, headers=headers)
+            response = requests.delete(url, headers=headers, timeout=30)
 
         # 파일 다운로드 응답인 경우 바이너리 데이터 그대로 전달
         content_type = response.headers.get('Content-Type', '')
@@ -1575,9 +1575,15 @@ def api_proxy(path):
         # JSON 응답 처리
         try:
             return response.json(), response.status_code
-        except:
+        except Exception as json_err:
+            # JSON 파싱 실패 시 텍스트 반환
             return response.text, response.status_code
     except Exception as e:
+        # 상세한 에러 로깅
+        import traceback
+        print(f"[ERROR] api_proxy failed for path: {path}")
+        print(f"[ERROR] Exception: {str(e)}")
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 @app.errorhandler(404)
