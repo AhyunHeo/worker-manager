@@ -211,7 +211,7 @@ function Setup-PortForwarding {
         [Parameter(Mandatory=$false)]
         # Ray 및 DDP 포트 포함: 6379(GCS), 10001(Client), 8265(Dashboard), 11000-11049(Worker), 29500-29509(DDP)
         [int[]]$Ports = @(
-            3000, 3030, 6006, 6007,  # 일반 서비스
+            3030, 6006, 6007,  # 일반 서비스 (3000 제외 - 중앙 플랫폼 포트)
             6379, 10001, 8265, 8076, 8077,  # Ray Core (GCS, Client, Dashboard, ObjectManager, NodeManager)
             7860, 8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8091,  # 웹 서비스
             8888, 9090,  # Jupyter, Prometheus

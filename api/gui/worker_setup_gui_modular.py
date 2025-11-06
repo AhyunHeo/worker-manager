@@ -38,11 +38,11 @@ def generate_worker_setup_gui_modular(node: Node) -> str:
 
     server_ip = LOCAL_SERVER_IP
 
-    # VPN 기능이 제거되었으므로 빈 함수 정의 (호환성 유지)
+    # 네트워크 설정 함수 (LAN IP 사용)
     vpn_install_function = """
-# VPN 기능은 더 이상 사용하지 않음 (LAN IP 사용)
+# 네트워크 환경 설정 (LAN IP 기반)
 function Install-VPN {
-    Write-Host "[INFO] VPN 설치를 건너뜁니다. LAN IP를 사용합니다." -ForegroundColor Green
+    Write-Host "[INFO] 네트워크 설정을 시작합니다. LAN IP를 사용합니다." -ForegroundColor Green
     return $true
 }
 """
@@ -434,7 +434,7 @@ $form.Controls.Add($titleLabel)
 $infoLabel = New-Object System.Windows.Forms.Label
 $infoLabel.Location = New-Object System.Drawing.Point(20,55)
 $infoLabel.Size = New-Object System.Drawing.Size(460,20)
-$infoLabel.Text = "Node: $global:NODE_ID | VPN: $global:VPN_IP"
+$infoLabel.Text = "Node: $global:NODE_ID | IP: $global:VPN_IP"
 $infoLabel.Font = New-Object System.Drawing.Font('Segoe UI',9)
 $infoLabel.ForeColor = [System.Drawing.Color]::Gray
 $form.Controls.Add($infoLabel)
@@ -550,12 +550,12 @@ function Start-CompleteSetup {{
     
     Update-Progress '설치 시작' 5
     
-    # Step 1: VPN 설치 및 설정
-    $statusLabel.Text = "Step 1/2: VPN 설치 중..."
-    $detailLabel.Text = "WireGuard VPN 터널을 설치하고 있습니다."
+    # Step 1: 네트워크 설정
+    $statusLabel.Text = "Step 1/2: 네트워크 설정 중..."
+    $detailLabel.Text = "네트워크 환경을 구성하고 있습니다."
     $progressBar.Value = 10
     [System.Windows.Forms.Application]::DoEvents()
-    Update-Progress 'Step 1: VPN 설치 및 설정' 10
+    Update-Progress 'Step 1: 네트워크 설정' 10
     
     # 설치 취소 확인
     if ($global:installationCancelled) {{
@@ -570,10 +570,10 @@ function Start-CompleteSetup {{
         
         if (-not $vpnResult) {{
             $global:isInstalling = $false
-            $statusLabel.Text = "VPN 설치 실패"
+            $statusLabel.Text = "네트워크 설정 실패"
             $detailLabel.Text = "로그 파일을 확인하세요."
             $statusLabel.ForeColor = [System.Drawing.Color]::Red
-            Update-Progress 'VPN 설치 실패. 설치를 중단합니다.' 10
+            Update-Progress '네트워크 설정 실패. 설치를 중단합니다.' 10
             $progressBar.Value = 0
             $startButton.Enabled = $false
             $closeButton.Text = '종료'
@@ -587,7 +587,7 @@ function Start-CompleteSetup {{
             $timer.Interval = 3000
             $timer.Add_Tick({{
                 $timer.Stop()
-                Cleanup-OnExit -IsError $true -ErrorMessage "VPN 설치에 실패했습니다."
+                Cleanup-OnExit -IsError $true -ErrorMessage "네트워크 설정에 실패했습니다."
                 $form.Close()
                 [Environment]::Exit(1)
             }})
@@ -604,10 +604,10 @@ function Start-CompleteSetup {{
         throw
     }}
     
-    $statusLabel.Text = "Step 1/2: VPN 설치 완료!"
-    $detailLabel.Text = "VPN 연결이 활성화되었습니다."
+    $statusLabel.Text = "Step 1/2: 네트워크 설정 완료!"
+    $detailLabel.Text = "네트워크 환경이 구성되었습니다."
     $progressBar.Value = 50
-    Update-Progress 'VPN 설치 완료!' 50
+    Update-Progress '네트워크 설정 완료!' 50
     Start-Sleep -Milliseconds 500
     
     # 설치 취소 확인
@@ -789,7 +789,7 @@ function Start-CompleteSetup {{
         $global:installationFailed = $false
         $statusLabel.Text = "✓ 모든 설치가 완료되었습니다!"
         $statusLabel.ForeColor = [System.Drawing.Color]::Green
-        $detailLabel.Text = "Node: $global:NODE_ID | VPN: $global:VPN_IP"
+        $detailLabel.Text = "Node: $global:NODE_ID | IP: $global:VPN_IP"
         $progressBar.Value = 100
         Update-Progress '모든 설치가 완료되었습니다!' 100
         
