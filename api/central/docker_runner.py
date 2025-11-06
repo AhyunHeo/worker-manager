@@ -280,6 +280,8 @@ services:
   api:
     image: heoaa/central-server:latest
     container_name: central-server-api-prod
+    mem_limit: 2g
+    memswap_limit: 2g
     ports:
       - "0.0.0.0:{metadata.get('api_port', 8000)}:8000"
     volumes:
@@ -304,6 +306,8 @@ services:
   fl-api:
     image: heoaa/central-server-fl:latest
     container_name: fl-server-api-prod
+    mem_limit: 2g
+    memswap_limit: 2g
     ports:
       - "0.0.0.0:{metadata.get('fl_port', 5002)}:5002"
     volumes:
@@ -328,6 +332,8 @@ services:
   frontend:
     image: heoaa/central-frontend:latest
     container_name: central-server-frontend
+    mem_limit: 1g
+    memswap_limit: 1g
     ports:
       - "0.0.0.0:{metadata.get('frontend_port', 3000)}:3000"
     environment:
@@ -346,6 +352,8 @@ services:
   db:
     image: postgres:16
     container_name: central-server-db-protected
+    mem_limit: 1g
+    memswap_limit: 1g
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -361,6 +369,8 @@ services:
   mongo:
     image: mongo:7
     container_name: central-server-mongo-protected
+    mem_limit: 1g
+    memswap_limit: 1g
     environment:
       TZ: Asia/Seoul
     ports:
@@ -372,6 +382,8 @@ services:
   redis:
     image: redis:7
     container_name: central-server-redis-protected
+    mem_limit: 512m
+    memswap_limit: 512m
     restart: unless-stopped
 
 volumes:

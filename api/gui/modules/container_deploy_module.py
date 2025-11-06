@@ -12,7 +12,7 @@ def get_container_deploy_function(node_id: str, worker_ip: str, central_ip: str,
     description = metadata.get('description', f'Worker Node {node_id}')
     api_token = metadata.get('api_token', '')
     docker_image = metadata.get('docker_image', 'heoaa/worker-node-prod:latest')
-    memory_limit = metadata.get('memory_limit', '24g')
+    memory_limit = metadata.get('memory_limit', '64g')  # 워커노드는 학습 수행으로 더 많은 메모리 필요
 
     # LAN IP가 None이면 Worker IP를 기본값으로 사용 (PowerShell 치환이 작동하도록)
     # PowerShell에서 감지된 실제 LAN IP로 치환됨

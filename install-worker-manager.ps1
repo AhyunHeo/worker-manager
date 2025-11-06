@@ -245,6 +245,8 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    mem_limit: 1g
+    memswap_limit: 1g
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://worker:workerpass@postgres:5432/workerdb}
       - API_PORT=8091
@@ -267,6 +269,8 @@ services:
   postgres:
     image: postgres:15
     container_name: worker-postgres
+    mem_limit: 512m
+    memswap_limit: 512m
     environment:
       - POSTGRES_DB=workerdb
       - POSTGRES_USER=worker
@@ -282,6 +286,8 @@ services:
   web-dashboard:
     image: heoaa/worker-manager-dashboard:latest
     container_name: worker-dashboard
+    mem_limit: 512m
+    memswap_limit: 512m
     environment:
       - API_URL=http://worker-api:8091
       - API_TOKEN=${API_TOKEN:-test-token-123}
