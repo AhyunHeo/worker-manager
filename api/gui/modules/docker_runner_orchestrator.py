@@ -48,8 +48,8 @@ function Install-DockerRunner {{
         # ============================================
         # Step 1: WSL2 설치 확인 (필수)
         # ============================================
-        Update-Progress 'Step 1/5: WSL2 환경 확인 및 설치' 20
-        
+        Update-Progress 'Step 1/5: 시스템 환경 확인 및 준비' 20
+
         Write-Host "[INFO] Checking WSL2 installation..."
         
         # GUI 응답성 유지
@@ -61,10 +61,10 @@ function Install-DockerRunner {{
         [System.Windows.Forms.Application]::DoEvents()
         
         if ($wslResult -and $wslResult.NeedsReboot) {{
-            Update-Progress 'WSL2 설치를 위해 재시작이 필요합니다.' 25
+            Update-Progress '시스템 설치를 위해 재시작이 필요합니다.' 25
             $rebootChoice = [System.Windows.Forms.MessageBox]::Show(
-                "WSL2 설치를 위해 시스템 재시작이 필요합니다.`n`n지금 재시작하시겠습니까?",
-                "시스템 재시작 필요",
+                "시스템 환경 설치를 위해 컴퓨터 재시작이 필요합니다.`n`n지금 재시작하시겠습니까?",
+                "재시작 필요",
                 [System.Windows.Forms.MessageBoxButtons]::YesNo,
                 [System.Windows.Forms.MessageBoxIcon]::Warning
             )
@@ -76,17 +76,17 @@ function Install-DockerRunner {{
             }}
             return $false
         }} elseif ($wslResult -and -not $wslResult.Success) {{
-            Update-Progress "WSL2 설치 실패: $($wslResult.Message)" 25
+            Update-Progress "시스템 환경 설치 실패: $($wslResult.Message)" 25
             [System.Windows.Forms.MessageBox]::Show(
-                "WSL2 설치에 실패했습니다.`n`n$($wslResult.Message)",
-                "WSL2 설치 실패",
+                "시스템 환경 설치에 실패했습니다.`n`n$($wslResult.Message)",
+                "설치 실패",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
             )
             return $false
         }}
         
-        Update-Progress '✓ WSL2가 준비되었습니다.' 30
+        Update-Progress '✓ 시스템 환경이 준비되었습니다.' 30
 
         # ============================================
         # Windows LAN IP 감지 (Ray 분산학습용)
@@ -109,8 +109,8 @@ function Install-DockerRunner {{
         # ============================================
         # Step 2: Ubuntu 설치 (NVIDIA Container Toolkit 필수)
         # ============================================
-        Update-Progress 'Step 2/5: Ubuntu 배포판 설치 (NVIDIA 지원 필수)' 35
-        
+        Update-Progress 'Step 2/5: 시스템 구성 요소 설치' 35
+
         Write-Host "[INFO] Installing Ubuntu for NVIDIA Container Toolkit support..."
         
         # GUI 응답성 유지
@@ -123,7 +123,7 @@ function Install-DockerRunner {{
         
         $distroName = $null
         if (-not $ubuntuResult.Success) {{
-            Update-Progress "Ubuntu 설치 확인 중..." 40
+            Update-Progress "시스템 구성 요소 확인 중..." 40
             
             # Ubuntu 찾기 시도
             $standardNames = @("Ubuntu-22.04", "Ubuntu", "Ubuntu-20.04", "Ubuntu-24.04")
@@ -138,7 +138,7 @@ function Install-DockerRunner {{
             }}
             
             if (-not $distroName) {{
-                Update-Progress "Ubuntu가 설치되지 않았습니다. 자동 설치를 시작합니다..." 40
+                Update-Progress "시스템 구성 요소가 설치되지 않았습니다. 자동 설치를 시작합니다..." 40
                 Write-Host "[INFO] Ubuntu not found, installing Ubuntu-22.04..."
                 
                 # Ubuntu 22.04 자동 설치
@@ -195,10 +195,10 @@ function Install-DockerRunner {{
                     
                     # 여전히 실패하면 에러 메시지
                     if (-not $distroName) {{
-                        Update-Progress "Ubuntu 설치 실패" 40
+                        Update-Progress "시스템 구성 요소 설치 실패" 40
                         [System.Windows.Forms.MessageBox]::Show(
-                            "Ubuntu 설치에 실패했습니다.`n`nNVIDIA Container Toolkit 지원을 위해 Ubuntu가 필요합니다.",
-                            "Ubuntu 설치 실패",
+                            "시스템 구성 요소 설치에 실패했습니다.`n`n설치를 계속할 수 없습니다.",
+                            "설치 실패",
                             [System.Windows.Forms.MessageBoxButtons]::OK,
                             [System.Windows.Forms.MessageBoxIcon]::Error
                         )
@@ -225,30 +225,30 @@ function Install-DockerRunner {{
             }}
         }}
         
-        Update-Progress "✓ Ubuntu 준비 완료: $distroName" 45
+        Update-Progress "✓ 시스템 구성 요소 준비 완료" 45
         
         # Ubuntu 사용자 설정 (GUI 입력 필수)
         if ($distroName) {{
-            Update-Progress 'Ubuntu 사용자 설정 중...' 50
+            Update-Progress '사용자 계정 설정 중...' 50
             $currentUser = wsl -d $distroName -- whoami 2>$null
             
             if ($currentUser -eq "root" -or [string]::IsNullOrEmpty($currentUser)) {{
                 # 사용자 계정 생성 - 무조건 GUI 입력 받기
-                Update-Progress 'Ubuntu 사용자 계정 생성 중...' 50
+                Update-Progress '시스템 사용자 계정 생성 중...' 50
                 Write-Host "[INFO] Ubuntu 사용자 계정 생성 필요 - GUI 입력 대기..."
                 
                 # Initialize-UbuntuUser 함수 호출 (GUI 입력 포함)
                 $initResult = Initialize-UbuntuUser -DistroName $distroName
                 if ($initResult.Success) {{
                     $global:WSLUsername = $initResult.Username
-                    Update-Progress "✓ Ubuntu 사용자 생성 완료: $($initResult.Username)" 55
+                    Update-Progress "✓ 사용자 계정 생성 완료: $($initResult.Username)" 55
                 }} else {{
                     Write-Host "[ERROR] Ubuntu 사용자 생성 취소됨"
-                    Update-Progress "Ubuntu 사용자 설정 실패" 55
+                    Update-Progress "사용자 계정 설정 실패" 55
                     
                     # 사용자가 취소한 경우 설치 중단
                     [System.Windows.Forms.MessageBox]::Show(
-                        "Ubuntu 사용자 계정 생성이 취소되었습니다.`n`n설치를 계속할 수 없습니다.",
+                        "사용자 계정 생성이 취소되었습니다.`n`n설치를 계속할 수 없습니다.",
                         "설치 취소",
                         [System.Windows.Forms.MessageBoxButtons]::OK,
                         [System.Windows.Forms.MessageBoxIcon]::Warning
@@ -564,14 +564,14 @@ function Install-DockerRunner {{
         # ============================================
         # Step 3: Docker 설치 (Ubuntu 내부에 Docker CE)
         # ============================================
-        Update-Progress 'Step 3/5: Ubuntu 내부에 Docker 설치' 60
-        
+        Update-Progress 'Step 3/5: 컨테이너 환경 설치' 60
+
         Write-Host "[INFO] Installing Docker CE in Ubuntu..."
         
         # Docker 확인 및 설치
         $dockerCheck = wsl -d $distroName -- which docker 2>$null
         if ([string]::IsNullOrEmpty($dockerCheck)) {{
-            Update-Progress 'Docker 설치 중 (몇 분 소요)...' 60
+            Update-Progress '컨테이너 환경 설치 중 (몇 분 소요)...' 60
             
             # Docker CE 설치 스크립트
             $installScript = @'
@@ -609,7 +609,7 @@ sudo usermod -aG docker $USER
                 
                 # 10초마다 진행상황 표시
                 if ($elapsed % 10 -eq 0) {{
-                    Update-Progress "Docker 설치 중... ($elapsed/120초)" 60
+                    Update-Progress "컨테이너 환경 설치 중... ($elapsed/120초)" 60
                 }}
             }}
             
@@ -630,10 +630,10 @@ sudo usermod -aG docker $USER
             # Docker 설치 확인
             $dockerCheck = wsl -d $distroName -- which docker 2>$null
             if ([string]::IsNullOrEmpty($dockerCheck)) {{
-                Update-Progress 'Docker 설치 실패' 65
+                Update-Progress '컨테이너 환경 설치 실패' 65
                 [System.Windows.Forms.MessageBox]::Show(
-                    "Docker 설치에 실패했습니다.",
-                    "Docker 설치 실패",
+                    "컨테이너 환경 설치에 실패했습니다.",
+                    "설치 실패",
                     [System.Windows.Forms.MessageBoxButtons]::OK,
                     [System.Windows.Forms.MessageBoxIcon]::Error
                 )
@@ -641,10 +641,10 @@ sudo usermod -aG docker $USER
             }}
         }}
         
-        Update-Progress '✓ Docker 설치 완료' 65
-        
+        Update-Progress '✓ 컨테이너 환경 설치 완료' 65
+
         # Docker 작동 확인 (Docker Desktop WSL 통합 또는 Docker CE)
-        Update-Progress 'Docker 작동 확인 중...' 70
+        Update-Progress '컨테이너 환경 작동 확인 중...' 70
         
         # Docker 테스트
         $dockerTest = wsl -d $distroName -- docker version 2>&1
@@ -679,7 +679,7 @@ sudo usermod -aG docker $USER
             Write-Host "[SUCCESS] Docker is already working"
         }}
         
-        Update-Progress '✓ Docker 준비 완료' 70
+        Update-Progress '✓ 컨테이너 환경 준비 완료' 70
 
         # ============================================
         # Step 3.5: 포트 포워딩 설정 (Worker IP → WSL2 IP)
