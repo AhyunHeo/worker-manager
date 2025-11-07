@@ -309,7 +309,7 @@ function Install-DockerRunner {{
                     $resetButton.Location = New-Object System.Drawing.Point(10, 155)
                     $resetButton.Size = New-Object System.Drawing.Size(150, 30)
                     $resetButton.Text = "🔄 비밀번호 초기화"
-                    $resetButton.BackColor = [System.Drawing.Color]::FromArgb(255, 152, 0)
+                    $resetButton.BackColor = [System.Drawing.Color]::FromArgb(76, 175, 80)
                     $resetButton.ForeColor = [System.Drawing.Color]::White
                     $resetButton.FlatStyle = "Flat"
                     $resetButton.Add_Click({{
