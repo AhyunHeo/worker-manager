@@ -459,9 +459,9 @@ function Install-DockerRunner {{
                 
                 while ($attemptCount -lt $maxAttempts -and -not $passwordSuccess) {{
                     $attemptCount++
-                    
+
                     # 남은 시도 횟수 표시
-                    $attemptsRemaining = $maxAttempts - $attemptCount + 1
+                    $attemptsRemaining = $maxAttempts - $attemptCount
                     $promptMessage = "'$currentUser' 계정의 관리자 비밀번호를 입력하세요.`n`n"
                     $promptMessage += "이 비밀번호는 설치 권한을 위해 필요합니다."
                     if ($attemptCount -gt 1) {{

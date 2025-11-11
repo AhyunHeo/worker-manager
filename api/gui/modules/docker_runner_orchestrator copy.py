@@ -329,9 +329,9 @@ function Install-DockerRunner {{
                 
                 while ($attemptCount -lt $maxAttempts -and -not $passwordSuccess) {{
                     $attemptCount++
-                    
+
                     # 남은 시도 횟수 표시
-                    $attemptsRemaining = $maxAttempts - $attemptCount + 1
+                    $attemptsRemaining = $maxAttempts - $attemptCount
                     $promptMessage = "Ubuntu 사용자 '$currentUser'의 sudo 비밀번호를 입력하세요.`n`n"
                     $promptMessage += "이 비밀번호는 Docker 설치 권한을 위해 필요합니다."
                     if ($attemptCount -gt 1) {{
