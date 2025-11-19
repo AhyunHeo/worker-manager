@@ -684,7 +684,7 @@ if %errorLevel% == 0 (
 )
 
 echo [%DATE% %TIME%] Script completed >> "%ERROR_LOG%"
-exit /b
+exit
 '''
 
     return batch_script
