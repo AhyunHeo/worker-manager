@@ -427,7 +427,7 @@ wsl bash -c "cd ~/worker-{node.node_id} && echo 'WORKER_IP={node.vpn_ip}' >> .en
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'HOST_IP={node.vpn_ip}' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'API_TOKEN={metadata.get('api_token', 'your-api-token')}' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'REGISTRY=docker.io' >> .env"
-wsl bash -c "cd ~/worker-{node.node_id} && echo 'IMAGE_NAME=heoaa/worker-node-prod' >> .env"
+wsl bash -c "cd ~/worker-{node.node_id} && echo 'IMAGE_NAME=intownlab/worker-node-prod' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'TAG={DOCKER_TAG}' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'MEMORY_LIMIT=24g' >> .env"
 
@@ -616,7 +616,7 @@ echo API_TOKEN={metadata.get('api_token', 'your-api-token')}
 echo.
 echo # Docker Registry ^(optional^)
 echo REGISTRY=docker.io
-echo IMAGE_NAME=heoaa/worker-node-prod
+echo IMAGE_NAME=intownlab/worker-node-prod
 echo TAG={DOCKER_TAG}
 echo.
 echo # Resource Limits
@@ -636,7 +636,7 @@ echo.
 
 :: Login to Docker registry if needed
 echo Checking Docker registry...
-docker pull heoaa/worker-node-prod:{DOCKER_TAG} 2>nul
+docker pull intownlab/worker-node-prod:{DOCKER_TAG} 2>nul
 if errorlevel 1 (
     echo [WARNING] Cannot pull image. Make sure you have access to the registry.
     echo You may need to run: docker login
@@ -650,7 +650,7 @@ set CENTRAL_SERVER_IP={central_ip}
 set HOST_IP={worker_ip}
 set WORKER_IP={worker_ip}
 set DESCRIPTION={metadata.get('description', 'Worker Node')}
-set IMAGE_NAME=heoaa/worker-node-prod
+set IMAGE_NAME=intownlab/worker-node-prod
 set TAG={DOCKER_TAG}
 
 echo Running docker compose up -d with environment variables...

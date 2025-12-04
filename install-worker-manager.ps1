@@ -242,7 +242,7 @@ version: '3.8'
 
 services:
   worker-api:
-    image: heoaa/worker-manager:latest
+    image: intownlab/worker-manager:latest
     container_name: worker-api
     privileged: true
     cap_add:
@@ -287,7 +287,7 @@ services:
       - worker_net
 
   web-dashboard:
-    image: heoaa/worker-manager-dashboard:latest
+    image: intownlab/worker-manager-dashboard:latest
     container_name: worker-dashboard
     mem_limit: 512m
     memswap_limit: 512m

@@ -11,7 +11,7 @@ def get_container_deploy_function(node_id: str, worker_ip: str, central_ip: str,
     worker_type = metadata.get('worker_type', 'gpu')
     description = metadata.get('description', f'Worker Node {node_id}')
     api_token = metadata.get('api_token', '')
-    docker_image = metadata.get('docker_image', 'heoaa/worker-node-prod:latest')
+    docker_image = metadata.get('docker_image', 'intownlab/worker-node-prod:latest')
     memory_limit = metadata.get('memory_limit', '64g')  # 워커노드는 학습 수행으로 더 많은 메모리 필요
 
     # LAN IP가 None이면 Worker IP를 기본값으로 사용 (PowerShell 치환이 작동하도록)
@@ -368,7 +368,7 @@ function Deploy-Container {
             
             # 이미지 확인
             $existingImages = docker images --format "table {{.Repository}}:{{.Tag}}" 2>$null
-            if ($existingImages -match "heoaa/worker-node-prod") {
+            if ($existingImages -match "intownlab/worker-node-prod") {
                 Write-Host "기존 이미지를 사용하여 컨테이너를 시작합니다..." -ForegroundColor Green
             } else {
                 Write-Host "Docker 이미지를 다운로드합니다..." -ForegroundColor Cyan
@@ -461,7 +461,7 @@ function Deploy-Container {
             # Docker Compose 실행 준비
             Write-Host "[DEBUG] Preparing to run Docker Compose..."
             
-            if ($existingImages -match "heoaa/worker-node-prod") {
+            if ($existingImages -match "intownlab/worker-node-prod") {
                 Write-Host "기존 이미지를 사용하여 컨테이너를 시작합니다..." -ForegroundColor Green
             } else {
                 Write-Host "Docker 이미지 다운로드 중... (최대 10분 소요)" -ForegroundColor Cyan

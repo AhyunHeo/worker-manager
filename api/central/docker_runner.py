@@ -279,7 +279,7 @@ try {{
 # Central Server Protected Docker Compose
 services:
   api:
-    image: heoaa/central-server:latest
+    image: intownlab/central-server:latest
     container_name: central-server-api-prod
     mem_limit: 2g
     memswap_limit: 2g
@@ -305,7 +305,7 @@ services:
     restart: unless-stopped
 
   fl-api:
-    image: heoaa/central-server-fl:latest
+    image: intownlab/central-server-fl:latest
     container_name: fl-server-api-prod
     mem_limit: 2g
     memswap_limit: 2g
@@ -331,7 +331,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: heoaa/central-frontend:latest
+    image: intownlab/central-frontend:latest
     container_name: central-server-frontend
     mem_limit: 1g
     memswap_limit: 1g
