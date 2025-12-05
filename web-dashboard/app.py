@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
 # Admin password for dashboard access
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'password')
 
 def login_required(f):
     """Decorator to require login for dashboard access"""
@@ -929,7 +929,7 @@ def login():
             <button type="submit" class="btn">로그인</button>
         </form>
         <div class="back-link">
-            <a href="/">← 메인으로 돌아가기</a>
+            <a href="/central">← 중앙서버 구축 페이지로</a>
         </div>
     </div>
 </body>
@@ -943,16 +943,17 @@ def logout():
     session.pop('authenticated', None)
     return redirect(url_for('index'))
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    """Admin dashboard - requires authentication"""
-    return DASHBOARD_TEMPLATE.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
+# /dashboard 페이지 비활성화 - 더 이상 사용하지 않음
+# @app.route('/dashboard')
+# @login_required
+# def dashboard():
+#     """Admin dashboard - requires authentication"""
+#     return DASHBOARD_TEMPLATE.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
 
 @app.route('/')
-@app.route('/central')
+@login_required
 def index():
-    """Landing page - Central server registration info"""
+    """Landing page - Main menu (requires login)"""
     landing_html = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -1187,7 +1188,6 @@ def index():
             <div class="nav-links">
                 <a href="/central/setup">🌐 중앙서버</a>
                 <a href="/worker/setup">⚙️ 워커노드</a>
-                <a href="/dashboard">🔐 관리자</a>
             </div>
         </nav>
     </header>
@@ -1313,6 +1313,400 @@ def index():
 </html>
     """
     return landing_html.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
+
+@app.route('/central')
+def central():
+    """Central server setup guide page"""
+    central_html = """
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중앙서버 구축 - Worker Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #c7d2fe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #7fbf55 0%, #2665a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            color: #7fbf55;
+        }
+        .step-card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+        .step-card.completed {
+            border-left: 4px solid #10b981;
+        }
+        .step-card.active {
+            border-left: 4px solid #6366f1;
+        }
+        .step-card.pending {
+            border-left: 4px solid #d1d5db;
+            opacity: 0.7;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+        .step-card.completed .step-number {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .step-card.active .step-number {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        }
+        .step-card.pending .step-number {
+            background: #d1d5db;
+        }
+        .step-title {
+            font-size: 22px;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        .step-content {
+            margin-left: 64px;
+        }
+        .step-content p {
+            color: #64748b;
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0db7ed 0%, #0a8ac4 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(13, 183, 237, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 183, 237, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .check-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .check-box h4 {
+            color: #16a34a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .check-box p {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0;
+        }
+        .check-box code {
+            background: #dcfce7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .warning-box {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .warning-box h4 {
+            color: #b45309;
+            margin-bottom: 8px;
+        }
+        .warning-box p {
+            color: #92400e;
+            font-size: 14px;
+            margin: 0;
+        }
+        .docker-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-top: 16px;
+        }
+        .status-icon {
+            font-size: 24px;
+        }
+        .status-text {
+            color: #475569;
+            font-size: 14px;
+        }
+        #docker-check-result {
+            display: none;
+        }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: #64748b;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 메인으로 돌아가기</a>
+
+        <div class="header">
+            <h1>🌐 중앙서버 구축</h1>
+            <p>AI 플랫폼 중앙서버를 설정하고 워커노드를 관리하세요</p>
+        </div>
+
+        <!-- Step 1: Docker Desktop 설치 -->
+        <div class="step-card active" id="step1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Docker Desktop 설치</div>
+            </div>
+            <div class="step-content">
+                <p>
+                    Worker Manager는 Docker 기반으로 동작합니다.<br>
+                    아래 버튼을 클릭하여 Docker Desktop을 다운로드하고 설치해주세요.
+                </p>
+                <div class="btn-group">
+                    <a href="https://www.docker.com/products/docker-desktop/" target="_blank" class="btn btn-primary">
+                        🐳 Docker Desktop 다운로드
+                    </a>
+                    <a href="https://docs.docker.com/desktop/install/windows-install/" target="_blank" class="btn btn-secondary">
+                        📖 설치 가이드
+                    </a>
+                </div>
+
+                <div class="check-box">
+                    <h4>✅ 설치 확인 방법</h4>
+                    <p>
+                        1. Docker Desktop 설치 후 <strong>실행</strong><br>
+                        2. 시스템 트레이에서 Docker 아이콘 확인 (고래 모양 🐳)<br>
+                        3. 터미널에서 <code>docker --version</code> 명령어 실행
+                    </p>
+                </div>
+
+                <div class="warning-box">
+                    <h4>⚠️ 주의사항</h4>
+                    <p>
+                        설치 후 Docker Desktop을 <strong>반드시 실행</strong>해주세요.<br>
+                        Docker가 실행 중이어야 다음 단계를 진행할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Docker 실행 확인 -->
+        <div class="step-card pending" id="step2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Docker 실행 확인</div>
+            </div>
+            <div class="step-content">
+                <p>
+                    Docker Desktop을 설치하고 실행했다면, 아래 버튼을 클릭하여 확인하세요.
+                </p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="checkDocker()">
+                        🔍 Docker 상태 확인
+                    </button>
+                </div>
+                <div id="docker-check-result"></div>
+            </div>
+        </div>
+
+        <!-- Step 3: 중앙서버 설정 -->
+        <div class="step-card pending" id="step3">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-title">중앙서버 설정</div>
+            </div>
+            <div class="step-content">
+                <p>
+                    Docker가 정상적으로 실행 중이라면, 중앙서버 설정 페이지로 이동하여<br>
+                    AI 플랫폼 중앙서버를 구축하세요.
+                </p>
+                <div class="btn-group">
+                    <a href="/central/setup" class="btn btn-success" id="setup-btn" style="pointer-events: none; opacity: 0.5;">
+                        🚀 중앙서버 설정하기
+                    </a>
+                </div>
+                <div class="check-box" style="margin-top: 20px;">
+                    <h4>📋 설정 페이지에서 진행되는 작업</h4>
+                    <p>
+                        • 서버 IP 자동 감지 및 설정<br>
+                        • Docker 컨테이너 자동 배포<br>
+                        • 방화벽 자동 설정<br>
+                        • 워커 관리 대시보드 설치
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 INTOWN Co., Ltd. | Worker Manager for Distributed AI Platform</p>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 Docker 상태 자동 확인
+        window.addEventListener('DOMContentLoaded', function() {
+            // Step 활성화 상태 확인
+            updateStepStatus();
+        });
+
+        function updateStepStatus() {
+            // 기본적으로 Step 1 활성화
+            document.getElementById('step1').classList.remove('pending');
+            document.getElementById('step1').classList.add('active');
+        }
+
+        function checkDocker() {
+            const resultDiv = document.getElementById('docker-check-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="docker-status"><span class="status-icon">⏳</span><span class="status-text">Docker 상태 확인 중...</span></div>';
+
+            // Docker 상태 확인 API 호출
+            fetch('/api/check-docker')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.running) {
+                        resultDiv.innerHTML = '<div class="docker-status" style="background: #f0fdf4; border: 1px solid #bbf7d0;"><span class="status-icon">✅</span><span class="status-text" style="color: #16a34a;"><strong>Docker가 정상적으로 실행 중입니다!</strong><br>이제 중앙서버 설정을 진행할 수 있습니다.</span></div>';
+
+                        // Step 상태 업데이트
+                        document.getElementById('step1').classList.remove('active');
+                        document.getElementById('step1').classList.add('completed');
+                        document.getElementById('step2').classList.remove('pending');
+                        document.getElementById('step2').classList.add('completed');
+                        document.getElementById('step3').classList.remove('pending');
+                        document.getElementById('step3').classList.add('active');
+
+                        // 설정 버튼 활성화
+                        const setupBtn = document.getElementById('setup-btn');
+                        setupBtn.style.pointerEvents = 'auto';
+                        setupBtn.style.opacity = '1';
+                    } else {
+                        resultDiv.innerHTML = '<div class="docker-status" style="background: #fef2f2; border: 1px solid #fecaca;"><span class="status-icon">❌</span><span class="status-text" style="color: #dc2626;"><strong>Docker가 실행되지 않았습니다.</strong><br>Docker Desktop을 설치하고 실행해주세요.</span></div>';
+                    }
+                })
+                .catch(error => {
+                    // API가 없어도 설정 페이지로 이동 가능하도록 허용
+                    resultDiv.innerHTML = '<div class="docker-status" style="background: #fef3c7; border: 1px solid #fcd34d;"><span class="status-icon">⚠️</span><span class="status-text" style="color: #b45309;"><strong>Docker 상태를 확인할 수 없습니다.</strong><br>Docker Desktop이 설치되어 있다면 설정을 진행해보세요.</span></div>';
+
+                    // 설정 버튼 활성화 (사용자가 직접 확인)
+                    const setupBtn = document.getElementById('setup-btn');
+                    setupBtn.style.pointerEvents = 'auto';
+                    setupBtn.style.opacity = '1';
+
+                    document.getElementById('step2').classList.remove('pending');
+                    document.getElementById('step2').classList.add('active');
+                    document.getElementById('step3').classList.remove('pending');
+                    document.getElementById('step3').classList.add('active');
+                });
+        }
+    </script>
+</body>
+</html>
+    """
+    return central_html.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
+
+@app.route('/api/check-docker')
+def check_docker():
+    """Check if Docker is running"""
+    try:
+        import subprocess
+        result = subprocess.run(['docker', 'info'], capture_output=True, timeout=5)
+        return jsonify({'running': result.returncode == 0})
+    except Exception as e:
+        return jsonify({'running': False, 'error': str(e)})
 
 @app.route('/api/nodes')
 def get_nodes():
