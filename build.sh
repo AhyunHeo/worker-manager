@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 워커매니저 이미지 빌드 스크립트
-
+chmod +x build.sh
 
 # ========================================
 # 설정 변수 (필요시 수정)
@@ -41,7 +41,7 @@ fi
 # 대시보드 이미지 빌드 (수정사항 있으면 주석 해제)
 echo ""
 echo "[2/2] 대시보드 보호 이미지 빌드 중..."
-docker build -f worker-manager/Dockerfile_fl -t ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} .
+docker build -f worker-manager/web-dashboard/Dockerfile -t ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} .
 
 if [ $? -eq 0 ]; then
     echo "✓ 대시보드 보호 이미지 빌드 성공"
