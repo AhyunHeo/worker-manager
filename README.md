@@ -40,17 +40,17 @@
 
 **1. 설치 파일 다운로드:**
 
-**[📥 최신 릴리즈에서 install-distributed-ai.zip 다운로드](../../releases/latest)**
+**[📥 최신 릴리즈에서 install-worker-manager.zip 다운로드](../../releases/latest)**
 
 > 💡 **구축형 배포**: 설치 파일만 포함된 ZIP
 >
-> Releases 페이지 → Assets → install-distributed-ai.zip 다운로드
+> Releases 페이지 → Assets → install-worker-manager.zip 다운로드
 
 **2. 압축 해제 및 실행:**
 
 ```bash
-# 1. install-distributed-ai.zip 압축 해제
-# 2. install-distributed-ai.bat 더블클릭
+# 1. install-worker-manager.zip 압축 해제
+# 2. install-worker-manager.bat 더블클릭
 # 3. UAC 창에서 "예(Y)" 클릭
 ```
 
@@ -79,8 +79,13 @@
 
 **1. 프로젝트 클론:**
 ```bash
-git clone <repository-url>
+git clone -b intownlab <repository-url>
 cd worker-manager
+```
+
+**2. Docker 이미지 빌드 및 푸시:**
+```bash
+chmod +x build.sh && ./build.sh
 ```
 
 #### 서비스 접속
@@ -122,7 +127,7 @@ worker-manager/
 ├── docker-compose.yml            # Docker Compose 설정
 ├── Dockerfile                    # API 서버 Dockerfile
 ├── requirements.txt              # Python 의존성
-├── install-distributed-ai.bat    # 올인원 설치 파일 (GUI)
+├── install-worker-manager.bat    # 올인원 설치 파일 (GUI)
 ├── start.sh                      # Linux/macOS 시작 스크립트
 └── .env.example                  # 환경변수 예제
 ```
