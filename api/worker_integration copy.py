@@ -378,8 +378,7 @@ async def api_worker_setup(
             "description": request.description,
             "central_server_ip": central_ip,
             "central_server_url": central_url,
-            "hostname": request.hostname or request.node_id,
-            "api_token": request.api_token if hasattr(request, 'api_token') and request.api_token else ""
+            "hostname": request.hostname or request.node_id
         }
 
         # 기존 노드 확인
