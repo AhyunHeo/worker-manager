@@ -27,9 +27,9 @@ wheels/
 .env
 .env.local
 
-.bat
-.ps1
-.zip
+*.bat
+*.ps1
+*.zip
 
 # IDE
 .vscode/
