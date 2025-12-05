@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY worker-manager/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # API 소스 코드 복사
-COPY api /app
+COPY worker-manager/api /app
 
 # Worker Manager API 시작
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8091"]

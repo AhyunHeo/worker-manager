@@ -74,7 +74,7 @@ else
     exit 1
 fi
 
-# echo "[2/2] 대시보드 latest 태그 업데이트 및 이미지 푸시 중..."
+echo "[2/2] 대시보드 latest 태그 업데이트 및 이미지 푸시 중..."
 docker tag ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} ${FULL_IMAGE_DASHBOARD}:latest
 docker push ${FULL_IMAGE_DASHBOARD}:latest
 if [ $? -eq 0 ]; then
