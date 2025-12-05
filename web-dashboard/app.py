@@ -3,15 +3,28 @@
 Worker Manager Web Dashboard
 """
 
-from flask import Flask, render_template_string, jsonify, request, redirect, url_for, make_response
+from flask import Flask, render_template_string, jsonify, request, redirect, url_for, make_response, session
 import requests
 import json
 from datetime import datetime
 import secrets
 import os
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
+
+# Admin password for dashboard access
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+
+def login_required(f):
+    """Decorator to require login for dashboard access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('authenticated'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Global configuration - 환경변수에서 한 번만 로드
 LOCAL_SERVER_IP = os.getenv('LOCAL_SERVER_IP', '192.168.0.88')
@@ -788,9 +801,158 @@ DASHBOARD_TEMPLATE = """
 </html>
 """
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Admin login page"""
+    error = None
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        if password == ADMIN_PASSWORD:
+            session['authenticated'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            error = '비밀번호가 올바르지 않습니다.'
+
+    login_html = """
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Manager - 관리자 로그인</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #c7d2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            padding: 48px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            max-width: 400px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #7fbf55 0%, #2665a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .logo p {
+            color: #64748b;
+            margin-top: 8px;
+        }
+        .form-group {
+            margin-bottom: 24px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #7fbf55;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #7fbf55 0%, #69a758 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(127, 191, 85, 0.3);
+        }
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 24px;
+        }
+        .back-link a {
+            color: #64748b;
+            text-decoration: none;
+        }
+        .back-link a:hover {
+            color: #7fbf55;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>Worker Manager</h1>
+            <p>관리자 로그인</p>
+        </div>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" name="password" placeholder="관리자 비밀번호 입력" required autofocus>
+            </div>
+            <button type="submit" class="btn">로그인</button>
+        </form>
+        <div class="back-link">
+            <a href="/">← 메인으로 돌아가기</a>
+        </div>
+    </div>
+</body>
+</html>
+    """
+    return render_template_string(login_html, error=error)
+
+@app.route('/logout')
+def logout():
+    """Logout and clear session"""
+    session.pop('authenticated', None)
+    return redirect(url_for('index'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """Admin dashboard - requires authentication"""
+    return DASHBOARD_TEMPLATE.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
+
 @app.route('/')
+@app.route('/central')
 def index():
-    """Landing page"""
+    """Landing page - Central server registration info"""
     landing_html = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -1025,6 +1187,7 @@ def index():
             <div class="nav-links">
                 <a href="/central/setup">🌐 중앙서버</a>
                 <a href="/worker/setup">⚙️ 워커노드</a>
+                <a href="/dashboard">🔐 관리자</a>
             </div>
         </nav>
     </header>
@@ -1086,23 +1249,52 @@ def index():
             </div>
         </div>
 
+        <div class="quick-start" style="border-left: 4px solid #ef4444;">
+            <h3 style="margin-bottom: 30px; color: #dc2626; font-size: 28px;">⚠️ 사전 필수 설치</h3>
+            <div style="background: #fef2f2; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                <h4 style="color: #dc2626; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 32px;">🐳</span> Docker Desktop 설치 필수
+                </h4>
+                <p style="color: #64748b; margin-bottom: 16px; line-height: 1.6;">
+                    Worker Manager는 Docker 기반으로 동작합니다.<br>
+                    아래 버튼을 클릭하여 <strong>Docker Desktop</strong>을 먼저 설치해주세요.
+                </p>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <a href="https://www.docker.com/products/docker-desktop/" target="_blank" class="btn" style="background: linear-gradient(135deg, #0db7ed 0%, #0a8ac4 100%); box-shadow: 0 4px 15px rgba(13, 183, 237, 0.3);">
+                        🐳 Docker Desktop 다운로드
+                    </a>
+                    <a href="https://docs.docker.com/desktop/install/windows-install/" target="_blank" class="btn btn-secondary">
+                        📖 설치 가이드
+                    </a>
+                </div>
+            </div>
+            <div style="background: #f0fdf4; border-radius: 12px; padding: 20px;">
+                <h5 style="color: #16a34a; margin-bottom: 12px;">✅ 설치 확인 방법</h5>
+                <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
+                    1. Docker Desktop 설치 후 실행<br>
+                    2. 시스템 트레이에서 Docker 아이콘 확인 (고래 모양)<br>
+                    3. 터미널에서 <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">docker --version</code> 실행
+                </p>
+            </div>
+        </div>
+
         <div class="quick-start">
             <h3 style="margin-bottom: 30px; color: #1e293b; font-size: 28px;">🚀 빠른 시작 가이드</h3>
             <div class="steps">
                 <div class="step">
                     <div class="step-number">1</div>
+                    <h5 style="color: #1e293b; margin-bottom: 8px;">Docker 설치</h5>
+                    <p style="font-size: 14px; color: #64748b;">Docker Desktop 설치 필수</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
                     <h5 style="color: #1e293b; margin-bottom: 8px;">중앙서버 설정</h5>
                     <p style="font-size: 14px; color: #64748b;">AI 플랫폼 서버 등록</p>
                 </div>
                 <div class="step">
-                    <div class="step-number">2</div>
+                    <div class="step-number">3</div>
                     <h5 style="color: #1e293b; margin-bottom: 8px;">워커노드 추가</h5>
                     <p style="font-size: 14px; color: #64748b;">GPU 노드 환경 설정</p>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h5 style="color: #1e293b; margin-bottom: 8px;">컨테이너 배포</h5>
-                    <p style="font-size: 14px; color: #64748b;">Docker 컨테이너 실행</p>
                 </div>
                 <div class="step">
                     <div class="step-number">4</div>

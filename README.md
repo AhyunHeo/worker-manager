@@ -67,9 +67,9 @@
 
 **4. 접속:**
 
-- Frontend: `http://{서버IP}:3000`
-- Worker Manager: `http://{서버IP}:5000`
-- Worker Setup: `http://{서버IP}:8091/worker/setup`
+- Worker Manager: `http://{서버IP}:5000` -> 중앙서버 구축
+- Frontend: `http://{서버IP}:3000` -> 노드 등록
+
 
 ---
 
@@ -81,74 +81,6 @@
 ```bash
 git clone <repository-url>
 cd worker-manager
-```
-
-**2. 자동 시작 (권장):**
-
-**Windows (가장 간편):**
-```bash
-start.bat               # start.ps1을 자동으로 실행
-start.bat -d            # 백그라운드 실행
-start.bat -f            # 강제 재생성
-start.bat -d -f         # 백그라운드 + 강제 재생성
-```
-
-**Windows (PowerShell 직접 실행):**
-```powershell
-.\start.ps1             # 기본 실행
-.\start.ps1 -d          # 백그라운드 실행
-.\start.ps1 -f          # 강제 재생성
-.\start.ps1 -d -f       # 백그라운드 + 강제 재생성
-```
-
-**Linux/macOS:**
-```bash
-./start.sh
-```
-
-시작 스크립트는 다음을 자동으로 수행합니다:
-- ✅ LAN IP 자동 감지
-- ✅ .env 파일 자동 생성 및 설정
-- ✅ 방화벽 및 포트 포워딩 설정 (Windows만)
-- ✅ WSL2 포트 포워딩 설정 (Windows만)
-- ✅ Docker Compose 실행
-
-**💡 추천:** Windows 사용자는 `start.bat`를 더블클릭하거나 명령줄에서 실행하세요!
-
-**3. 수동 설정 (선택사항):**
-
-자동 시작 대신 수동으로 설정하려면:
-
-```bash
-# .env 파일 생성
-cp .env.example .env
-
-# .env 파일 편집 (주요 설정)
-# - LOCAL_SERVER_IP: Worker Manager 서버의 로컬 IP
-# - API_TOKEN: API 인증 토큰
-# - CENTRAL_SERVER_URL: 중앙 서버 주소 (선택사항)
-```
-
-### 3. 서비스 시작
-
-#### Windows (권장)
-```powershell
-# PowerShell에서 실행 (관리자 권한 자동 요청)
-.\start.ps1           # 포그라운드 실행 (로그 확인)
-.\start.ps1 -d        # 백그라운드 실행
-.\start.ps1 -f        # 강제 재생성
-.\start.ps1 -d -f     # 백그라운드 + 강제 재생성
-```
-
-start.ps1은 다음 작업을 자동으로 수행합니다:
-1. WSL2 포트 포워딩 설정
-2. Docker Compose로 모든 서비스 시작
-3. 접속 주소 안내
-
-#### Linux
-```bash
-# Docker Compose 실행
-docker-compose up -d
 ```
 
 #### 서비스 접속
@@ -191,10 +123,7 @@ worker-manager/
 ├── Dockerfile                    # API 서버 Dockerfile
 ├── requirements.txt              # Python 의존성
 ├── install-distributed-ai.bat    # 올인원 설치 파일 (GUI)
-├── start.bat                     # Windows 시작 스크립트 (배치)
-├── start.ps1                     # Windows 시작 스크립트 (PowerShell)
 ├── start.sh                      # Linux/macOS 시작 스크립트
-├── setup-port-forwarding.ps1     # WSL2 포트 포워딩
 └── .env.example                  # 환경변수 예제
 ```
 
@@ -251,26 +180,6 @@ curl -H "Authorization: Bearer <API_TOKEN>" \
 # 시스템 통계
 curl -H "Authorization: Bearer <API_TOKEN>" \
   http://<서버IP>:8091/stats
-```
-
-## 🐳 Docker 명령어
-
-```powershell
-# 서비스 로그 확인
-docker-compose logs -f              # 전체 로그
-docker-compose logs -f worker-api   # API 서버 로그만
-
-# 서비스 상태 확인
-docker-compose ps
-
-# 서비스 재시작
-docker-compose restart worker-api
-
-# 서비스 중지
-docker-compose down
-
-# 완전 삭제 (볼륨 포함)
-docker-compose down -v
 ```
 
 ## ⚙️ 환경변수
@@ -342,14 +251,6 @@ ipconfig
 # 해당 IP로 접속 (예: 192.168.0.88:8091)
 ```
 
-### 포트 포워딩 실패
-**증상**: WSL2에서 외부 접속 안 됨
-**해결**:
-```powershell
-# 관리자 권한으로 PowerShell 실행
-.\setup-port-forwarding.ps1
-```
-
 ### 컨테이너 시작 실패
 **증상**: `docker-compose up` 실패
 **해결**:
@@ -359,7 +260,7 @@ docker-compose logs
 
 # 기존 컨테이너 완전 삭제 후 재시작
 docker-compose down -v
-.\start.ps1 -f
+docker-compose up -d
 ```
 
 ## 📚 추가 문서
