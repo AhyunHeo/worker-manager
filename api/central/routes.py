@@ -772,39 +772,6 @@ async def central_install_page(token: str, db: Session = Depends(get_db)):
                     </div>
                 </div>
                 
-                <h3 style="margin-top: 30px; margin-bottom: 10px;">Docker 실행 파일 다운로드:</h3>
-                
-                <div style="margin: 24px 0; padding: 24px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 12px;">
-                    <h4 style="color: #92400e; margin-bottom: 15px; font-size: 18px;">⚠️ 중요: 사전 설치 요구사항</h4>
-                    <div style="color: #78350f; font-size: 14px; line-height: 1.8;">
-                        <p style="margin-bottom: 10px;">
-                            중앙서버 실행을 위해 <strong>Docker Desktop</strong>이 반드시 설치되어 있어야 합니다.
-                        </p>
-                        <ol style="margin-left: 20px; margin-bottom: 15px;">
-                            <li><strong>Docker Desktop 다운로드 및 설치</strong></li>
-                            <li><strong>Docker Desktop 실행</strong> (시스템 트레이에 Docker 아이콘 확인)</li>
-                            <li><strong>Docker 엔진이 완전히 시작될 때까지 대기</strong> (약 30초~1분)</li>
-                        </ol>
-                        <div style="padding: 12px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 15px;">
-                            <strong>⚠️ 주의:</strong> Docker Desktop이 설치되지 않았거나 실행되지 않은 경우:
-                            <ul style="margin-left: 20px; margin-top: 5px;">
-                                <li>Docker runner 실행 시 자동으로 Docker Desktop 설치 안내가 표시됩니다</li>
-                                <li>Docker Desktop 설치 후 docker-runner.bat을 다시 실행하면 됩니다</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-                        <a href="https://www.docker.com/products/docker-desktop/" target="_blank" 
-                           style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); color: white; 
-                                  text-decoration: none; border-radius: 10px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);">
-                            🐳 Docker Desktop 다운로드 페이지
-                        </a>
-                        <span style="color: #78350f; font-size: 13px;">
-                            Windows 10/11 64-bit 버전 필요
-                        </span>
-                    </div>
-                </div>
-                
                 <div style="margin: 24px 0; padding: 20px; background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 12px;">
                     <h4 style="color: #14532d; margin-bottom: 12px; font-size: 18px;">🚀 간단한 Docker 실행</h4>
                     <p style="color: #166534; font-size: 14px; line-height: 1.8; margin-bottom: 15px;">

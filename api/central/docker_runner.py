@@ -545,16 +545,16 @@ WS_MESSAGE_QUEUE_SIZE=100
     Write-Host "========================================="
 
     [System.Windows.Forms.MessageBox]::Show(
-        "🎉 Central Server Started Successfully!`n`n" +
-        "📡 Access URLs:`n" +
+        "Central Server Started Successfully!`n`n" +
+        "Access URLs:`n" +
         "- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}`n" +
         "- API: http://{local_ip}:{metadata.get('api_port', 8000)}`n" +
         "- FL Server: http://{local_ip}:{metadata.get('fl_port', 5002)}`n`n" +
-        "🔧 Network Configuration:`n" +
+        "Network Configuration:`n" +
         "- WSL IP: $wslIP`n" +
         "- Port Forwarding: $portForwardSuccess/$($ports.Count) ports configured`n" +
         "- Firewall Rules: $firewallSuccess/$($ports.Count) rules added`n`n" +
-        "✅ Configured Ports: 3000, 8000, 5002, 5000, 8091, 5432, 27017",
+        "Configured Ports: 3000, 8000, 5002, 5000, 8091, 5432, 27017",
         'Success',
         'OK',
         'Information'
