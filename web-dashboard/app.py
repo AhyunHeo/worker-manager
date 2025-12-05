@@ -1565,41 +1565,32 @@ def central():
                     </a>
                 </div>
 
-                <div class="check-box">
-                    <h4>✅ 설치 확인 방법</h4>
-                    <p>
-                        1. Docker Desktop 설치 후 <strong>실행</strong><br>
-                        2. 시스템 트레이에서 Docker 아이콘 확인 (고래 모양 🐳)<br>
-                        3. 터미널에서 <code>docker --version</code> 명령어 실행
-                    </p>
-                </div>
-
-                <div class="warning-box">
-                    <h4>⚠️ 주의사항</h4>
-                    <p>
-                        설치 후 Docker Desktop을 <strong>반드시 실행</strong>해주세요.<br>
-                        Docker가 실행 중이어야 다음 단계를 진행할 수 있습니다.
-                    </p>
-                </div>
             </div>
         </div>
 
-        <!-- Step 2: Docker 실행 확인 -->
+        <!-- Step 2: Docker Desktop 실행 -->
         <div class="step-card pending" id="step2">
             <div class="step-header">
                 <div class="step-number">2</div>
-                <div class="step-title">Docker 실행 확인</div>
+                <div class="step-title">Docker Desktop 실행</div>
             </div>
             <div class="step-content">
                 <p>
-                    Docker Desktop을 설치하고 실행했다면, 아래 버튼을 클릭하여 확인하세요.
+                    설치가 완료되면 바탕화면의 <strong>Docker Desktop</strong> 아이콘을 더블클릭하여 실행해주세요.
                 </p>
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="checkDocker()">
-                        🔍 Docker 상태 확인
-                    </button>
+                <div class="check-box">
+                    <h4>✅ 실행 확인</h4>
+                    <p>
+                        화면 우측 하단 시스템 트레이에 고래 모양 🐳 아이콘이 보이면 실행 완료!<br>
+                        (처음 실행 시 1~2분 정도 소요될 수 있습니다)
+                    </p>
                 </div>
-                <div id="docker-check-result"></div>
+                <div class="btn-group" style="margin-top: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="docker-confirm" onchange="confirmDocker()" style="width: 20px; height: 20px;">
+                        <span style="color: #475569; font-size: 15px;">Docker Desktop이 실행 중입니다</span>
+                    </label>
+                </div>
             </div>
         </div>
 
@@ -1611,22 +1602,12 @@ def central():
             </div>
             <div class="step-content">
                 <p>
-                    Docker가 정상적으로 실행 중이라면, 중앙서버 설정 페이지로 이동하여<br>
-                    AI 플랫폼 중앙서버를 구축하세요.
+                    Docker Desktop 실행을 확인했다면, 아래 버튼을 클릭하여 중앙서버를 설정하세요.
                 </p>
                 <div class="btn-group">
                     <a href="/central/setup" class="btn btn-success" id="setup-btn" style="pointer-events: none; opacity: 0.5;">
                         🚀 중앙서버 설정하기
                     </a>
-                </div>
-                <div class="check-box" style="margin-top: 20px;">
-                    <h4>📋 설정 페이지에서 진행되는 작업</h4>
-                    <p>
-                        • 서버 IP 자동 감지 및 설정<br>
-                        • Docker 컨테이너 자동 배포<br>
-                        • 방화벽 자동 설정<br>
-                        • 워커 관리 대시보드 설치
-                    </p>
                 </div>
             </div>
         </div>
@@ -1637,76 +1618,48 @@ def central():
     </div>
 
     <script>
-        // 페이지 로드 시 Docker 상태 자동 확인
+        // 페이지 로드 시 Step 1 활성화
         window.addEventListener('DOMContentLoaded', function() {
-            // Step 활성화 상태 확인
-            updateStepStatus();
-        });
-
-        function updateStepStatus() {
-            // 기본적으로 Step 1 활성화
             document.getElementById('step1').classList.remove('pending');
             document.getElementById('step1').classList.add('active');
-        }
+        });
 
-        function checkDocker() {
-            const resultDiv = document.getElementById('docker-check-result');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div class="docker-status"><span class="status-icon">⏳</span><span class="status-text">Docker 상태 확인 중...</span></div>';
+        // 사용자가 Docker 실행 확인 체크박스 클릭 시
+        function confirmDocker() {
+            const checkbox = document.getElementById('docker-confirm');
+            const setupBtn = document.getElementById('setup-btn');
 
-            // Docker 상태 확인 API 호출
-            fetch('/api/check-docker')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.running) {
-                        resultDiv.innerHTML = '<div class="docker-status" style="background: #f0fdf4; border: 1px solid #bbf7d0;"><span class="status-icon">✅</span><span class="status-text" style="color: #16a34a;"><strong>Docker가 정상적으로 실행 중입니다!</strong><br>이제 중앙서버 설정을 진행할 수 있습니다.</span></div>';
+            if (checkbox.checked) {
+                // Step 상태 업데이트
+                document.getElementById('step1').classList.remove('active');
+                document.getElementById('step1').classList.add('completed');
+                document.getElementById('step2').classList.remove('pending');
+                document.getElementById('step2').classList.add('completed');
+                document.getElementById('step3').classList.remove('pending');
+                document.getElementById('step3').classList.add('active');
 
-                        // Step 상태 업데이트
-                        document.getElementById('step1').classList.remove('active');
-                        document.getElementById('step1').classList.add('completed');
-                        document.getElementById('step2').classList.remove('pending');
-                        document.getElementById('step2').classList.add('completed');
-                        document.getElementById('step3').classList.remove('pending');
-                        document.getElementById('step3').classList.add('active');
+                // 설정 버튼 활성화
+                setupBtn.style.pointerEvents = 'auto';
+                setupBtn.style.opacity = '1';
+            } else {
+                // 체크 해제 시 원래 상태로
+                document.getElementById('step1').classList.remove('completed');
+                document.getElementById('step1').classList.add('active');
+                document.getElementById('step2').classList.remove('completed');
+                document.getElementById('step2').classList.add('pending');
+                document.getElementById('step3').classList.remove('active');
+                document.getElementById('step3').classList.add('pending');
 
-                        // 설정 버튼 활성화
-                        const setupBtn = document.getElementById('setup-btn');
-                        setupBtn.style.pointerEvents = 'auto';
-                        setupBtn.style.opacity = '1';
-                    } else {
-                        resultDiv.innerHTML = '<div class="docker-status" style="background: #fef2f2; border: 1px solid #fecaca;"><span class="status-icon">❌</span><span class="status-text" style="color: #dc2626;"><strong>Docker가 실행되지 않았습니다.</strong><br>Docker Desktop을 설치하고 실행해주세요.</span></div>';
-                    }
-                })
-                .catch(error => {
-                    // API가 없어도 설정 페이지로 이동 가능하도록 허용
-                    resultDiv.innerHTML = '<div class="docker-status" style="background: #fef3c7; border: 1px solid #fcd34d;"><span class="status-icon">⚠️</span><span class="status-text" style="color: #b45309;"><strong>Docker 상태를 확인할 수 없습니다.</strong><br>Docker Desktop이 설치되어 있다면 설정을 진행해보세요.</span></div>';
-
-                    // 설정 버튼 활성화 (사용자가 직접 확인)
-                    const setupBtn = document.getElementById('setup-btn');
-                    setupBtn.style.pointerEvents = 'auto';
-                    setupBtn.style.opacity = '1';
-
-                    document.getElementById('step2').classList.remove('pending');
-                    document.getElementById('step2').classList.add('active');
-                    document.getElementById('step3').classList.remove('pending');
-                    document.getElementById('step3').classList.add('active');
-                });
+                // 설정 버튼 비활성화
+                setupBtn.style.pointerEvents = 'none';
+                setupBtn.style.opacity = '0.5';
+            }
         }
     </script>
 </body>
 </html>
     """
     return central_html.replace('{LOCAL_SERVER_IP}', LOCAL_SERVER_IP)
-
-@app.route('/api/check-docker')
-def check_docker():
-    """Check if Docker is running"""
-    try:
-        import subprocess
-        result = subprocess.run(['docker', 'info'], capture_output=True, timeout=5)
-        return jsonify({'running': result.returncode == 0})
-    except Exception as e:
-        return jsonify({'running': False, 'error': str(e)})
 
 @app.route('/api/nodes')
 def get_nodes():
