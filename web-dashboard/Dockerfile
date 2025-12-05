@@ -5,10 +5,10 @@ RUN apt-get update && apt-get install -y iputils-ping && rm -rf /var/lib/apt/lis
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY worker-manager/web-dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
+COPY worker-manager/web-dashboard/app.py .
 
 # Environment variables (set via docker-compose or runtime)
 # ENV API_URL - set at runtime
