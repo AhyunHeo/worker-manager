@@ -127,18 +127,6 @@ def get_container_deploy_function(node_id: str, worker_ip: str, central_ip: str,
       timeout: 10s
       retries: 3
       start_period: 60s
-
-  # Watchtower - 자동 업데이트 서비스
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: watchtower-{node_id}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --schedule "0 */5 * * * *" --cleanup node-server-{node_id}
-    restart: unless-stopped
-    mem_limit: 256m
-    environment:
-      - TZ=Asia/Seoul
 """
     
     # GPU 지원 추가 (호스트 모드에서도 필요)
