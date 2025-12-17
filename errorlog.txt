@@ -1,0 +1,324 @@
+
+
+===================================== 
+Worker Setup (Modular) - Node node001 
+Started at 2025-12-17 11:04:28.34 
+===================================== 
+ # 시작도 안되는경우
+
+===================================== 
+Worker Setup (Modular) - Node node001 
+Started at 2025-12-17 10:58:15.87 
+===================================== 
+#시작도 안되는 경우.. 
+ 
+===================================== 
+Worker Setup (Modular) - Node node001 
+Started at 2025-12-17 10:39:55.10 
+===================================== 
+ 
+[10:39:55.16] Requesting administrator privileges... 
+[10:39:59.16] Running with administrator privileges... 
+[10:39:59.16] Running modular setup script... 
+[10:39:59.18] Creating temporary PowerShell script... 
+[10:40:07.34] Starting GUI (Modular Version)... 
+[10:40:07.41] Launching PowerShell GUI... 
+[10:40:08.26] Running decoded PowerShell script... 
+====================================
+Starting Worker Setup GUI v2.0 (Modular)
+Node ID: node001
+====================================
+
+Clearing cached scripts...
+  Removed cache: worker_gui_decoded_node001.ps1
+Cache cleared!
+Loading Windows Forms assemblies...
+Windows Forms loaded successfully!
+Initializing GUI...
+Form created: Worker Setup - node001
+Form size: 500 x 350
+Attempting to show GUI form...
+[10:40:12] 설치 시작
+[10:40:12] Step 1: 네트워크 설정
+[INFO] 네트워크 설정을 시작합니다. LAN IP를 사용합니다.
+[10:40:12] 네트워크 설정 완료!
+[10:40:13] Step 2: 환경 구성 중
+[10:40:13] Step 1/5: 시스템 환경 확인 및 준비
+[INFO] Checking WSL2 installation...
+[DEBUG] Checking WSL2 installation status
+[DEBUG] WSL2 is already installed
+[DEBUG] WSL version output: WSL 버전: 2.6.2.0 커널 버전: 6.6.87.2-1 WSLg 버전: 1.0.71 MSRDC 버전: 1.2.6353 Direct3D 버전: 1.611.1-81528511 DXCore 버전: 10.0.26100.1-240331-1435.ge-release Windows 버전: 10.0.26200.7462
+[DEBUG] WSL is installed but version info could not be parsed
+[DEBUG] Attempting to update WSL to latest version
+[SUCCESS] WSL updated to latest version
+[10:42:20] ✓ 시스템 환경이 준비되었습니다.
+[INFO] Detecting Windows host LAN IP for distributed training...
+[DEBUG] Detecting Windows host LAN IP address...
+[SUCCESS] Windows LAN IP detected: 192.168.0.38
+[SUCCESS] Windows LAN IP detected: 192.168.0.38
+[INFO] This IP will be used for Ray distributed training connections
+[10:42:24] Step 2/5: 시스템 구성 요소 설치
+[INFO] Installing Ubuntu for NVIDIA Container Toolkit support...
+[DEBUG] Checking Linux distributions
+[DEBUG] Testing Ubuntu-22.04 directly...
+[DEBUG] Ubuntu-22.04 is available and working
+[DEBUG] Default distro: docker-desktop
+[DEBUG] Using existing Ubuntu: Ubuntu-22.04
+[10:42:28] ✓ 시스템 구성 요소 준비 완료
+[10:42:28] 사용자 계정 설정 중...
+[10:42:28] ✓ 기존 사용자 사용: seokho
+[10:42:57] 비밀번호 확인 중... (시도 1/5)
+[10:42:59] sudo 권한 설정 중...
+[10:42:59] ✓ sudo 권한 설정 완료
+[10:42:59] Step 3/5: 컨테이너 환경 설치
+[INFO] Installing Docker CE in Ubuntu...
+[10:42:59] ✓ 컨테이너 환경 설치 완료
+[10:42:59] 컨테이너 환경 작동 확인 중...
+[INFO] Docker needs configuration, checking Docker Desktop integration...
+[INFO] Docker Desktop is running, testing WSL integration...
+[WARNING] Docker Desktop WSL integration may need configuration
+[10:43:03] ✓ 컨테이너 환경 준비 완료
+[10:43:03] Step 3.5/5: 포트 포워딩 설정 중...
+[INFO] Setting up port forwarding from Worker IP to WSL2...
+[DEBUG] Getting WSL2 IP address for distro: Ubuntu-22.04
+[DEBUG] Getting WSL2 IP address for distro: Ubuntu-22.04
+[DEBUG] Checking for distro: Ubuntu-22.04
+[DEBUG] Original distro name works: Ubuntu-22.04
+[DEBUG] Getting IP address from Ubuntu-22.04
+[DEBUG] WSL2 IP address: 172.19.22.12
+[SUCCESS] WSL2 IP address: 172.19.22.12
+[DEBUG] Setting up port forwarding: 192.168.0.88 -> 172.19.22.12
+[DEBUG] Setting up port forwarding from VPN IP (192.168.0.88) to WSL2 IP (172.19.22.12)
+[DEBUG] Removing existing rule for port 3030
+[DEBUG] Adding port forwarding rule: 192.168.0.88:3030 -> 172.19.22.12:3030
+[DEBUG] Removing existing rule for port 6006
+[DEBUG] Adding port forwarding rule: 192.168.0.88:6006 -> 172.19.22.12:6006
+[DEBUG] Removing existing rule for port 6007
+[DEBUG] Adding port forwarding rule: 192.168.0.88:6007 -> 172.19.22.12:6007
+[DEBUG] Removing existing rule for port 6379
+[DEBUG] Adding port forwarding rule: 192.168.0.88:6379 -> 172.19.22.12:6379
+[DEBUG] Removing existing rule for port 10001
+[DEBUG] Adding port forwarding rule: 192.168.0.88:10001 -> 172.19.22.12:10001
+[DEBUG] Removing existing rule for port 8265
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8265 -> 172.19.22.12:8265
+[DEBUG] Removing existing rule for port 8076
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8076 -> 172.19.22.12:8076
+[DEBUG] Removing existing rule for port 8077
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8077 -> 172.19.22.12:8077
+[DEBUG] Removing existing rule for port 7860
+[DEBUG] Adding port forwarding rule: 192.168.0.88:7860 -> 172.19.22.12:7860
+[DEBUG] Removing existing rule for port 8080
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8080 -> 172.19.22.12:8080
+[DEBUG] Removing existing rule for port 8081
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8081 -> 172.19.22.12:8081
+[DEBUG] Removing existing rule for port 8082
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8082 -> 172.19.22.12:8082
+[DEBUG] Removing existing rule for port 8083
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8083 -> 172.19.22.12:8083
+[DEBUG] Removing existing rule for port 8084
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8084 -> 172.19.22.12:8084
+[DEBUG] Removing existing rule for port 8085
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8085 -> 172.19.22.12:8085
+[DEBUG] Removing existing rule for port 8086
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8086 -> 172.19.22.12:8086
+[DEBUG] Removing existing rule for port 8087
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8087 -> 172.19.22.12:8087
+[DEBUG] Removing existing rule for port 8088
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8088 -> 172.19.22.12:8088
+[DEBUG] Removing existing rule for port 8089
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8089 -> 172.19.22.12:8089
+[DEBUG] Removing existing rule for port 8888
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8888 -> 172.19.22.12:8888
+[DEBUG] Removing existing rule for port 9090
+[DEBUG] Adding port forwarding rule: 192.168.0.88:9090 -> 172.19.22.12:9090
+[DEBUG] Removing existing rule for port 8001
+[DEBUG] Adding port forwarding rule: 192.168.0.88:8001 -> 172.19.22.12:8001
+[DEBUG] Removing existing rule for port 29500
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29500 -> 172.19.22.12:29500
+[DEBUG] Removing existing rule for port 29501
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29501 -> 172.19.22.12:29501
+[DEBUG] Removing existing rule for port 29502
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29502 -> 172.19.22.12:29502
+[DEBUG] Removing existing rule for port 29503
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29503 -> 172.19.22.12:29503
+[DEBUG] Removing existing rule for port 29504
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29504 -> 172.19.22.12:29504
+[DEBUG] Removing existing rule for port 29505
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29505 -> 172.19.22.12:29505
+[DEBUG] Removing existing rule for port 29506
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29506 -> 172.19.22.12:29506
+[DEBUG] Removing existing rule for port 29507
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29507 -> 172.19.22.12:29507
+[DEBUG] Removing existing rule for port 29508
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29508 -> 172.19.22.12:29508
+[DEBUG] Removing existing rule for port 29509
+[DEBUG] Adding port forwarding rule: 192.168.0.88:29509 -> 172.19.22.12:29509
+[DEBUG] Removing existing rule for port 11000
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11000 -> 172.19.22.12:11000
+[DEBUG] Removing existing rule for port 11001
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11001 -> 172.19.22.12:11001
+[DEBUG] Removing existing rule for port 11002
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11002 -> 172.19.22.12:11002
+[DEBUG] Removing existing rule for port 11003
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11003 -> 172.19.22.12:11003
+[DEBUG] Removing existing rule for port 11004
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11004 -> 172.19.22.12:11004
+[DEBUG] Removing existing rule for port 11005
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11005 -> 172.19.22.12:11005
+[DEBUG] Removing existing rule for port 11006
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11006 -> 172.19.22.12:11006
+[DEBUG] Removing existing rule for port 11007
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11007 -> 172.19.22.12:11007
+[DEBUG] Removing existing rule for port 11008
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11008 -> 172.19.22.12:11008
+[DEBUG] Removing existing rule for port 11009
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11009 -> 172.19.22.12:11009
+[DEBUG] Removing existing rule for port 11434
+[DEBUG] Adding port forwarding rule: 192.168.0.88:11434 -> 172.19.22.12:11434
+[DEBUG] Adding Ray worker port range (11010-11049)...
+[DEBUG] Port forwarding setup complete. Success: 83, Failed: 0
+[DEBUG] Verifying critical port forwarding rules...
+[SUCCESS] Port 6379: 192.168.0.88:6379 -> 172.19.22.12:6379 ✓
+[SUCCESS] Port 10001: 192.168.0.88:10001 -> 172.19.22.12:10001 ✓
+[SUCCESS] Port 29500: 192.168.0.88:29500 -> 172.19.22.12:29500 ✓
+[SUCCESS] Port 8001: 192.168.0.88:8001 -> 172.19.22.12:8001 ✓
+[DEBUG] Configuring Windows Firewall rules
+[DEBUG] Firewall rule added successfully
+[DEBUG] Ray firewall rule added successfully (ports 11000-11049)
+[DEBUG] Total active port forwarding rules: 83
+[SUCCESS] Port forwarding configured successfully
+[INFO] Total forwarding rules: 83
+[10:43:52] ✓ 포트 포워딩 설정 완료
+[10:43:52] Step 4/5: NVIDIA Container Toolkit 설치
+[INFO] Installing NVIDIA Container Toolkit for GPU support...
+[10:43:52] NVIDIA GPG 키 추가 중...
+[INFO] NVIDIA Container Toolkit 설치 중 (최대 20분 소요될 수 있습니다)
+[SUCCESS] NVIDIA Container Toolkit installation completed
+[INFO] Installation output: [1/5]
+[10:43:56] ✓ NVIDIA Container Toolkit 설치 완료
+[10:43:56] Step 5/5: Worker 컨테이너 배포
+[INFO] Deploying worker container with docker-compose...
+[DEBUG] Calling Deploy-Container with:
+  - DistroName: Ubuntu-22.04
+  - VpnIP: 192.168.0.88
+  - LanIP: 192.168.0.38
+  - WorkerType: gpu
+[DEBUG] Invoking Deploy-Container function...
+[Deploy-Container] Function started
+[Deploy-Container] Distro: Ubuntu-22.04, VPN IP: 192.168.0.88, LAN IP: 192.168.0.38, Type: gpu
+[DEBUG] Starting container deployment for distro: Ubuntu-22.04
+[DEBUG] Creating Docker Compose configuration...
+[DEBUG] Creating directories in WSL home directory
+[DEBUG] Creating directory: ~/worker
+[DEBUG] Directory created: ~/worker
+[DEBUG] Creating directory: ~/worker/models
+[DEBUG] Directory created: ~/worker/models
+[DEBUG] Creating directory: ~/worker/outputs
+[DEBUG] Directory created: ~/worker/outputs
+[DEBUG] Creating directory: ~/worker/logs
+[DEBUG] Directory created: ~/worker/logs
+[DEBUG] Directories created successfully
+[DEBUG] Creating docker-compose.yml
+[INFO] Substituting LAN_IP in docker-compose.yml: 192.168.0.88 -> 192.168.0.38
+[SUCCESS] Docker compose content updated with detected LAN IP
+[DEBUG] Writing docker-compose.yml to WSL
+[DEBUG] Temp file created: C:\Users\rtg85\AppData\Local\Temp\docker-compose-temp.yml (No BOM)
+[DEBUG] WSL path: /mnt/c/Users/rtg85/AppData/Local/Temp/docker-compose-temp.yml
+[DEBUG] Copying from Windows temp to WSL...
+[DEBUG] docker-compose.yml created successfully
+[DEBUG] Checking Docker image: intownlab/worker-node-prod:latest
+[DEBUG] Docker image already exists - skipping download
+[DEBUG] Checking existing containers...
+[DEBUG] Found existing container(s):  The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[DEBUG] Stopping and removing existing containers...
+[DEBUG] Starting container with Docker Compose
+[DEBUG] Using legacy 'docker-compose' command
+[DEBUG] Checking Docker socket permissions...
+[DEBUG] Docker socket status: docker_sudo
+[DEBUG] docker-compose.yml verified: exists
+[DEBUG] Checking and cleaning up existing containers...
+[DEBUG] Removing existing container:  The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[DEBUG] Checking existing Docker images...
+[DEBUG] Existing images found:
+# The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[DEBUG] Preparing to run Docker Compose...
+Docker 이미지 다운로드 중... (최대 10분 소요)
+[10:44:05] Docker 컨테이너 시작 중...
+[DEBUG] Running docker-compose with sudo...
+[DEBUG] Command: cd ~/worker && sudo docker-compose up -d --remove-orphans
+[DEBUG] Docker Compose output:
+----------------------------------------
+# sudo: docker-compose: command not found
+----------------------------------------
+[DEBUG] Checking container status after docker-compose...
+[DEBUG] All containers:
+# The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[ERROR] Docker Compose failed: sudo: docker-compose: command not found
+[ERROR] Container logs: sudo: docker-compose: command not found
+[DEBUG] Deploy-Container returned: Success=False, Message=컨테이너 배포 실패: sudo: docker-compose: command not found
+[10:44:08] 컨테이너 배포 실패: 컨테이너 배포 실패: sudo: docker-compose: command not found
+[INFO] Retrying container deployment...
+[Deploy-Container] Function started
+[Deploy-Container] Distro: Ubuntu-22.04, VPN IP: 192.168.0.88, LAN IP: 192.168.0.38, Type: gpu
+[DEBUG] Starting container deployment for distro: Ubuntu-22.04
+[DEBUG] Creating Docker Compose configuration...
+[DEBUG] Creating directories in WSL home directory
+[DEBUG] Creating directory: ~/worker
+[DEBUG] Directory created: ~/worker
+[DEBUG] Creating directory: ~/worker/models
+[DEBUG] Directory created: ~/worker/models
+[DEBUG] Creating directory: ~/worker/outputs
+[DEBUG] Directory created: ~/worker/outputs
+[DEBUG] Creating directory: ~/worker/logs
+[DEBUG] Directory created: ~/worker/logs
+[DEBUG] Directories created successfully
+[DEBUG] Creating docker-compose.yml
+[INFO] Substituting LAN_IP in docker-compose.yml: 192.168.0.88 -> 192.168.0.38
+[SUCCESS] Docker compose content updated with detected LAN IP
+[DEBUG] Writing docker-compose.yml to WSL
+[DEBUG] Temp file created: C:\Users\rtg85\AppData\Local\Temp\docker-compose-temp.yml (No BOM)
+[DEBUG] WSL path: /mnt/c/Users/rtg85/AppData/Local/Temp/docker-compose-temp.yml
+[DEBUG] Copying from Windows temp to WSL...
+[DEBUG] docker-compose.yml created successfully
+[DEBUG] Checking Docker image: intownlab/worker-node-prod:latest
+[DEBUG] Docker image already exists - skipping download
+[DEBUG] Checking existing containers...
+[DEBUG] Found existing container(s):  The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[DEBUG] Stopping and removing existing containers...
+[DEBUG] Starting container with Docker Compose
+[DEBUG] Using legacy 'docker-compose' command
+[DEBUG] Checking Docker socket permissions...
+[DEBUG] Docker socket status: docker_sudo
+[DEBUG] docker-compose.yml verified: exists
+[DEBUG] Checking and cleaning up existing containers...
+[DEBUG] Removing existing container:  The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[DEBUG] Checking existing Docker images...
+[DEBUG] Existing images found:
+# The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[DEBUG] Preparing to run Docker Compose...
+Docker 이미지 다운로드 중... (최대 10분 소요)
+[10:44:27] Docker 컨테이너 시작 중...
+[DEBUG] Running docker-compose with sudo...
+[DEBUG] Command: cd ~/worker && sudo docker-compose up -d --remove-orphans
+[DEBUG] Docker Compose output:
+----------------------------------------
+# sudo: docker-compose: command not found
+----------------------------------------
+[DEBUG] Checking container status after docker-compose...
+[DEBUG] All containers:
+# The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.  For details about using Docker Desktop with WSL 2, visit:  https://docs.docker.com/go/wsl2/ 
+[ERROR] Docker Compose failed: sudo: docker-compose: command not found
+[ERROR] Container logs: sudo: docker-compose: command not found
+[10:44:30] 컨테이너 배포 실패
+[ERROR] Container deployment failed, terminating...
+[INFO] Application will close in 3 seconds...
+[10:44:30] 모든 설치가 완료되었습니다!
+[INFO] Auto-closing after deployment failure...
+===== Starting cleanup process =====
+[CLEANUP] Removed temp file: worker_gui_modular_node001.txt
+[CLEANUP] Terminated PowerShell jobs
+[ERROR] 컨테이너 배포 실패
+[ERROR] Exiting due to error: 컨테이너 배포 실패
+===== Cleanup completed =====
+Form closing...
+[10:44:34.74] PowerShell execution failed with error code -1 

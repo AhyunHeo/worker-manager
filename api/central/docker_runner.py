@@ -92,12 +92,24 @@ $closeButton.Location = New-Object System.Drawing.Point(200, 165)
 $closeButton.Size = New-Object System.Drawing.Size(100, 30)
 $closeButton.Enabled = $false
 $closeButton.Add_Click({{
+    # 설치 성공 시 웹앱 페이지 열기
+    if ($script:installSuccess -and $script:webAppUrl) {{
+        try {{
+            Start-Process $script:webAppUrl
+        }} catch {{
+            Write-Host "Failed to open browser: $_"
+        }}
+    }}
     $form.Close()
     [System.Windows.Forms.Application]::Exit()
     # PowerShell 프로세스 완전 종료
     Stop-Process -Id $PID -Force
 }})
 $form.Controls.Add($closeButton)
+
+# 설치 성공 플래그 초기화
+$script:installSuccess = $false
+$script:webAppUrl = $null
 
 $form.Show()
 [System.Windows.Forms.Application]::DoEvents()
@@ -543,6 +555,10 @@ WS_MESSAGE_QUEUE_SIZE=100
     Write-Host "- Port Forwarding: $portForwardSuccess/$($ports.Count) ports"
     Write-Host "- Firewall Rules: $firewallSuccess/$($ports.Count) rules"
     Write-Host "========================================="
+
+    # 설치 성공 플래그 및 웹앱 URL 설정
+    $script:installSuccess = $true
+    $script:webAppUrl = "http://{local_ip}:{metadata.get('frontend_port', 3000)}"
 
     [System.Windows.Forms.MessageBox]::Show(
         "Central Server Started Successfully!`n`n" +

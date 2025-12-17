@@ -382,17 +382,147 @@ function Deploy-Container {
             
         } else {
             # WSL을 통해 실행
-            # docker compose 명령 확인
-            $dockerComposeCmd = "docker-compose"
-            $testNewCompose = wsl -d $DistroName -- which "docker-compose" 2>$null
-            if ($testNewCompose) {
-                # Docker CLI에 compose 플러그인이 있는지 확인
-                $composePlugin = wsl -d $DistroName -- docker compose version 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    $dockerComposeCmd = "docker compose"
-                    Write-Host "[DEBUG] Using new 'docker compose' command"
+
+            # === Docker CLI 사용 가능 여부 먼저 확인 ===
+            Write-Host "[DEBUG] Checking if Docker CLI is available in WSL..."
+            $dockerAvailable = wsl -d $DistroName -- which docker 2>$null
+
+            if (-not $dockerAvailable) {
+                Write-Host "[WARNING] Docker CLI not found in WSL distro: $DistroName"
+                Write-Host "[INFO] Attempting to enable Docker Desktop WSL integration..."
+
+                # Docker Desktop WSL 통합 활성화 시도
+                $dockerDesktopSettings = "$env:APPDATA\Docker\settings.json"
+
+                if (Test-Path $dockerDesktopSettings) {
+                    try {
+                        $settings = Get-Content $dockerDesktopSettings -Raw | ConvertFrom-Json
+
+                        # integratedWslDistros 배열이 없으면 생성
+                        if (-not $settings.integratedWslDistros) {
+                            $settings | Add-Member -NotePropertyName "integratedWslDistros" -NotePropertyValue @() -Force
+                        }
+
+                        # 현재 distro가 통합 목록에 없으면 추가
+                        if ($settings.integratedWslDistros -notcontains $DistroName) {
+                            $settings.integratedWslDistros += $DistroName
+                            $settings | ConvertTo-Json -Depth 10 | Set-Content $dockerDesktopSettings -Encoding UTF8
+                            Write-Host "[SUCCESS] Added $DistroName to Docker Desktop WSL integration"
+                            Write-Host "[INFO] Docker Desktop restart may be required. Attempting restart..."
+
+                            # Docker Desktop 재시작
+                            $dockerProcess = Get-Process | Where-Object { $_.ProcessName -like "*Docker*" } | Select-Object -First 1
+                            if ($dockerProcess) {
+                                Get-Process | Where-Object { $_.ProcessName -like "*Docker*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+                                Start-Sleep -Seconds 3
+
+                                # Docker Desktop 다시 시작
+                                $dockerPath = @(
+                                    'C:\Program Files\Docker\Docker\Docker Desktop.exe',
+                                    "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+                                )
+                                foreach ($path in $dockerPath) {
+                                    if (Test-Path $path) {
+                                        Start-Process $path
+                                        Write-Host "[INFO] Docker Desktop restarting..."
+                                        break
+                                    }
+                                }
+
+                                # Docker Desktop 시작 대기
+                                Write-Host "[INFO] Waiting for Docker Desktop to start..."
+                                $maxWait = 60
+                                $waited = 0
+                                while ($waited -lt $maxWait) {
+                                    Start-Sleep -Seconds 3
+                                    $waited += 3
+                                    [System.Windows.Forms.Application]::DoEvents()
+
+                                    # Docker CLI 다시 확인
+                                    $dockerAvailable = wsl -d $DistroName -- which docker 2>$null
+                                    if ($dockerAvailable) {
+                                        Write-Host "[SUCCESS] Docker CLI now available in WSL"
+                                        break
+                                    }
+                                    Write-Host "[INFO] Waiting for Docker... ($waited/$maxWait seconds)"
+                                }
+                            }
+                        } else {
+                            Write-Host "[INFO] $DistroName is already in Docker Desktop WSL integration list"
+                        }
+                    } catch {
+                        Write-Host "[ERROR] Failed to modify Docker Desktop settings: $_"
+                    }
                 } else {
-                    Write-Host "[DEBUG] Using legacy 'docker-compose' command"
+                    Write-Host "[WARNING] Docker Desktop settings file not found: $dockerDesktopSettings"
+                }
+
+                # 재확인
+                $dockerAvailable = wsl -d $DistroName -- which docker 2>$null
+                if (-not $dockerAvailable) {
+                    Write-Host "[ERROR] Docker CLI still not available. Please enable WSL integration in Docker Desktop settings manually."
+                    Write-Host "[ERROR] Go to Docker Desktop > Settings > Resources > WSL Integration > Enable '$DistroName'"
+
+                    return @{
+                        Success = $false
+                        ContainerName = "node-server-""" + node_id + """"
+                        Status = "Failed"
+                        Message = "Docker CLI를 WSL에서 찾을 수 없습니다. Docker Desktop 설정에서 WSL 통합을 활성화해주세요."
+                    }
+                }
+            }
+
+            Write-Host "[DEBUG] Docker CLI is available in WSL"
+
+            # docker compose 명령 확인 (v2 우선, v1 fallback)
+            $dockerComposeCmd = $null
+
+            # 1. 먼저 docker compose (v2) 확인
+            $composeV2Test = wsl -d $DistroName -- docker compose version 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                $dockerComposeCmd = "docker compose"
+                Write-Host "[DEBUG] Using new 'docker compose' command (v2)"
+            } else {
+                # 2. docker-compose (v1) 확인
+                $composeV1Test = wsl -d $DistroName -- which docker-compose 2>$null
+                if ($composeV1Test) {
+                    $dockerComposeCmd = "docker-compose"
+                    Write-Host "[DEBUG] Using legacy 'docker-compose' command (v1)"
+                }
+            }
+
+            # 3. 둘 다 없으면 Docker Compose 플러그인 설치 시도
+            if (-not $dockerComposeCmd) {
+                Write-Host "[WARNING] Neither 'docker compose' nor 'docker-compose' found"
+                Write-Host "[INFO] Attempting to install Docker Compose plugin..."
+
+                # Docker Compose v2 플러그인 설치 시도 (간단한 명령으로 변경)
+                $installCmd = "mkdir -p ~/.docker/cli-plugins/ 2>/dev/null && curl -SL https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose 2>/dev/null && chmod +x ~/.docker/cli-plugins/docker-compose 2>/dev/null && docker compose version 2>/dev/null && echo SUCCESS || echo FAILED"
+                $installResult = wsl -d $DistroName -- bash -c "$installCmd" 2>&1
+
+                if ($installResult -match "SUCCESS") {
+                    $dockerComposeCmd = "docker compose"
+                    Write-Host "[SUCCESS] Docker Compose plugin installed successfully"
+                } else {
+                    Write-Host "[ERROR] Failed to install Docker Compose: $installResult"
+                    Write-Host "[INFO] Trying alternative installation method..."
+
+                    # sudo를 사용한 대체 설치 방법
+                    $altInstallCmd = "sudo apt-get update -qq && sudo apt-get install -y docker-compose-plugin 2>/dev/null && docker compose version && echo SUCCESS || echo FAILED"
+                    $altInstallResult = wsl -d $DistroName -- bash -c "$altInstallCmd" 2>&1
+
+                    if ($altInstallResult -match "SUCCESS") {
+                        $dockerComposeCmd = "docker compose"
+                        Write-Host "[SUCCESS] Docker Compose plugin installed via apt"
+                    } else {
+                        Write-Host "[ERROR] All Docker Compose installation attempts failed"
+                        return @{
+                            Success = $false
+                            ContainerName = "node-server-""" + node_id + """"
+                            Status = "Failed"
+                            Message = "Docker Compose를 설치할 수 없습니다. 수동으로 설치해주세요."
+                        }
+                    }
                 }
             }
             
