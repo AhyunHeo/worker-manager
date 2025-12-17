@@ -7,7 +7,8 @@
 # ========================================
 DOCKER_USER="intownlab"
 IMAGE_NAME="worker-manager"
-VERSION="v1.0"
+# VERSION="v1.0"
+VERSION="v1.1"
 
 FULL_IMAGE="${DOCKER_USER}/${IMAGE_NAME}"
 
