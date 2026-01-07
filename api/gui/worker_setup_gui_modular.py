@@ -57,7 +57,10 @@ function Install-VPN {
         import re
         central_ip_match = re.search(r'://([^:]+)', central_url)
         central_ip = central_ip_match.group(1) if central_ip_match else "192.168.0.88"
-    
+
+    # owner_id 추출
+    owner_id = metadata.get('owner_id', '') or ''
+
     # 모듈화된 Docker Runner 함수 가져오기
     docker_runner_function = get_docker_runner_orchestrator(
         server_ip=server_ip,
@@ -132,7 +135,7 @@ public class Win32 {{
 # 전역 변수
 $global:NODE_ID = '{node.node_id}'
 $global:VPN_IP = '{node.vpn_ip}'
-$global:OWNER_ID = '{metadata.get("owner_id", "")}'
+$global:OWNER_ID = '{owner_id}'
 $global:CENTRAL_IP = '{central_ip}'
 $global:SERVER_IP = '{server_ip}'
 $global:currentStep = 1
@@ -1001,7 +1004,8 @@ try {{
         server_ip=server_ip,
         central_ip=central_ip,
         vpn_install_function=vpn_install_function,
-        docker_runner_function=docker_runner_function
+        docker_runner_function=docker_runner_function,
+        owner_id=owner_id
     )
     
     # 전체 스크립트를 Base64로 인코딩

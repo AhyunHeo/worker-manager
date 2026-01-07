@@ -11,7 +11,7 @@ from database import SessionLocal
 from models import Node, QRToken
 from simple_worker_docker_runner import generate_simple_worker_runner, generate_simple_worker_runner_wsl
 from utils import get_lan_ip, validate_lan_ip
-from typing import Optional
+from typing import Optional, Union
 import json
 import logging
 import qrcode
@@ -54,12 +54,14 @@ class WorkerEnvironmentRequest(BaseModel):
     description: str
     central_server_ip: Optional[str] = None
     hostname: Optional[str] = None
-    owner_id: Optional[str] = None  # 노드 소유자 ID
+    owner_id: Optional[Union[str, int]] = None  # 노드 소유자 ID (문자열 또는 숫자)
 
 @router.get("/worker/setup")
-async def worker_setup_page():
+async def worker_setup_page(owner_id: Optional[Union[str, int]] = None):
     """워커노드 설정 페이지"""
     central_server_url = CENTRAL_SERVER_URL
+    # owner_id를 문자열로 변환
+    owner_id_str = str(owner_id) if owner_id is not None else ""
     
     # Response Headers for better performance
     headers = {
@@ -276,12 +278,21 @@ async def worker_setup_page():
         </div>
         
         <script>
+            // URL 파라미터에서 owner_id 가져오기
+            const urlParams = new URLSearchParams(window.location.search);
+            const ownerIdFromUrl = urlParams.get('owner_id') || '{owner_id_str}';
+
             document.getElementById('workerForm').addEventListener('submit', async (e) => {{
                 e.preventDefault();
-                
+
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
-                
+
+                // owner_id 추가 (URL 파라미터에서 가져옴)
+                if (ownerIdFromUrl) {{
+                    data.owner_id = ownerIdFromUrl;
+                }}
+
                 // 빈 값 제거
                 Object.keys(data).forEach(key => {{
                     if (!data[key]) delete data[key];
@@ -494,10 +505,13 @@ async def generate_worker_qr(
 ):
     """워커노드용 QR 코드 및 설치 링크 생성"""
     try:
+        # 디버깅: 요청 데이터 로깅
+        logger.info(f"[generate-qr] Received request: node_id={request.node_id}, owner_id={request.owner_id}")
+
         # 토큰 생성
         token = secrets.token_urlsafe(32)
         expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-        
+
         # 토큰 정보를 DB에 저장
         qr_token = QRToken(
             token=token,
@@ -507,24 +521,28 @@ async def generate_worker_qr(
             used=False
         )
         db.add(qr_token)
-        
+
         # 워커노드 메타데이터도 토큰과 함께 저장 (JSON 형태로)
         # 중앙서버 IP를 URL로 변환
         central_ip = request.central_server_ip or '192.168.0.88'
         central_url = f"http://{central_ip}:8000"
-        
+
+        # owner_id를 문자열로 변환 (숫자로 들어올 수 있음)
+        owner_id_str = str(request.owner_id) if request.owner_id is not None else None
+        logger.info(f"[generate-qr] owner_id_str={owner_id_str}")
+
         metadata = {
             "description": request.description,
             "central_server_ip": central_ip,
             "central_server_url": central_url,
             "hostname": request.hostname or request.node_id,
-            "owner_id": request.owner_id  # 노드 소유자 ID
+            "owner_id": owner_id_str
         }
-        
+
         # Node 테이블에 예비 등록 (config는 나중에 생성)
         # 각 노드에 고유한 pending 키 생성 (충돌 방지)
         unique_pending_key = f"pending_{request.node_id}_{secrets.token_hex(8)}"
-        
+
         new_node = Node(
             node_id=request.node_id,
             node_type="worker",
@@ -534,7 +552,7 @@ async def generate_worker_qr(
             docker_env_vars=json.dumps(metadata),
             status="pending",  # 아직 VPN 설정 전
             vpn_ip=None,  # pending 상태에서는 None (unique constraint 충돌 방지)
-            owner_id=request.owner_id  # 노드 소유자 ID
+            owner_id=owner_id_str
         )
         
         # 중복 체크 및 업데이트
@@ -546,14 +564,14 @@ async def generate_worker_qr(
                 existing.central_server_url = central_url
                 existing.hostname = request.hostname or request.node_id
                 existing.docker_env_vars = json.dumps(metadata)
-                existing.owner_id = request.owner_id  # 소유자 ID 업데이트
+                existing.owner_id = owner_id_str
                 existing.updated_at = datetime.now(timezone.utc)
             else:  # pending 상태면 메타데이터만 업데이트
                 existing.description = request.description
                 existing.central_server_url = central_url
                 existing.hostname = request.hostname or request.node_id
                 existing.docker_env_vars = json.dumps(metadata)
-                existing.owner_id = request.owner_id  # 소유자 ID 업데이트
+                existing.owner_id = owner_id_str
                 existing.updated_at = datetime.now(timezone.utc)
         else:
             # 새 노드 추가 (임시로 pending 상태)
@@ -1413,6 +1431,68 @@ async def get_worker_status(node_id: str, db: Session = Depends(get_db)):
         "created_at": node.created_at,
         "updated_at": node.updated_at
     }
+
+@router.get("/api/templates/docker-compose-worker.yml")
+async def get_docker_compose_worker(worker_id: str, db: Session = Depends(get_db)):
+    """워커노드용 docker-compose.yml 템플릿 생성"""
+    try:
+        # 노드 조회
+        node = db.query(Node).filter(Node.node_id == worker_id).first()
+        if not node:
+            raise HTTPException(status_code=404, detail=f"Node {worker_id} not found")
+
+        # 메타데이터에서 정보 추출
+        metadata = json.loads(node.docker_env_vars) if node.docker_env_vars else {}
+        central_ip = metadata.get('central_server_ip', '192.168.0.88')
+        owner_id = metadata.get('owner_id', '')
+
+        # docker-compose.yml 템플릿 생성
+        compose_template = f"""version: '3.8'
+
+services:
+  worker-node:
+    image: intownlab/worker-node-prod:latest
+    container_name: worker-{worker_id}
+    restart: unless-stopped
+    environment:
+      - NODE_ID={worker_id}
+      - DESCRIPTION=${{DESCRIPTION:-Worker Node}}
+      - OWNER_ID={owner_id}
+      - CENTRAL_SERVER_IP={central_ip}
+      - CENTRAL_SERVER_URL=http://{central_ip}:8000
+      - HOST_IP=${{HOST_IP:-127.0.0.1}}
+      - WORKER_IP=${{WORKER_IP:-127.0.0.1}}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - worker-data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    network_mode: host
+
+volumes:
+  worker-data:
+"""
+
+        return Response(
+            content=compose_template,
+            media_type="text/yaml",
+            headers={
+                "Content-Disposition": f"attachment; filename=docker-compose.yml",
+                "Content-Type": "text/yaml"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to generate docker-compose for {worker_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/api/download/{node_id}/setup-gui")
 async def download_setup_gui(node_id: str, db: Session = Depends(get_db)):

@@ -18,10 +18,24 @@ VERSION_DASHBOARD="v1.0"
 
 FULL_IMAGE_DASHBOARD="${DOCKER_USER}/${IMAGE_NAME_DASHBOARD}"
 
+# ========================================
+# 노캐시 옵션 처리
+# ========================================
+NO_CACHE=""
+if [ "$1" == "--no-cache" ] || [ "$1" == "-nc" ]; then
+    NO_CACHE="--no-cache"
+    echo "========================================="
+    echo "🔄 노캐시 빌드 모드"
+    echo "========================================="
+fi
+
 echo "========================================="
 echo "통합 설치 관리자 이미지 빌드 시작"
 echo "========================================="
 echo "이미지: ${FULL_IMAGE}:${VERSION}"
+if [ -n "$NO_CACHE" ]; then
+    echo "옵션: --no-cache (캐시 미사용)"
+fi
 echo ""
 
 # 프로젝트 루트 디렉토리로 이동
@@ -30,7 +44,7 @@ cd ..
 # 기본 서버 이미지 빌드
 echo ""
 echo "[1/2] 통합 설치 관리자 이미지 빌드 중..."
-docker build -f worker-manager/Dockerfile -t ${FULL_IMAGE}:${VERSION} .
+docker build ${NO_CACHE} -f worker-manager/Dockerfile -t ${FULL_IMAGE}:${VERSION} .
 
 if [ $? -eq 0 ]; then
     echo "✓ 통합 설치 관리자 이미지 빌드 성공"
@@ -42,7 +56,7 @@ fi
 # 대시보드 이미지 빌드 (수정사항 있으면 주석 해제)
 echo ""
 echo "[2/2] 대시보드 보호 이미지 빌드 중..."
-docker build -f worker-manager/web-dashboard/Dockerfile -t ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} .
+docker build ${NO_CACHE} -f worker-manager/web-dashboard/Dockerfile -t ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} .
 
 if [ $? -eq 0 ]; then
     echo "✓ 대시보드 보호 이미지 빌드 성공"

@@ -1,281 +1,312 @@
-# Distributed AI Platform
+# Worker Manager
 
-중앙 서버 + 워커 노드 통합 관리 플랫폼
+Distributed AI Platform을 위한 워커노드 환경 설정 및 컨테이너 배포 관리 시스템
 
-## 📋 개요
+## 개요
 
-**Federated Learning 기반 분산 AI 플랫폼**으로, 중앙 서버와 워커 노드를 통합 관리합니다.
+Worker Manager는 분산 AI 학습 플랫폼의 핵심 구성 요소로, 중앙서버와 워커노드의 설치/배포/관리를 자동화합니다.
 
 ### 주요 기능
-- ✅ **Federated Learning** - 중앙 집중식 모델 학습
-- ✅ **Worker Manager** - 워커 노드 자동 환경 설정 및 관리
-- ✅ **GUI 기반 설치** - 웹 인터페이스로 간편한 설치
-- ✅ **자동 네트워크 설정** - 방화벽, 포트 포워딩 자동 구성
-- ✅ **Docker 기반 배포** - 컨테이너 기반 원격 배포
-- ✅ **실시간 모니터링** - 노드 상태 추적 및 관리
 
-## 🏗️ 시스템 구조
+- **자동 환경 설정**: WSL2, Ubuntu, Docker Desktop 자동 설치 및 구성
+- **원클릭 배포**: QR 코드 또는 웹 기반 설치 지원
+- **GPU 워커 관리**: NVIDIA GPU 기반 분산 학습 노드 관리
+- **중앙서버 구축**: AI 플랫폼 중앙서버 Docker 기반 배포
+- **실시간 모니터링**: 노드 상태, 연결 상태 확인
+
+## 아키텍처
 
 ```
-[중앙 서버]
-├─ Frontend (Port 3000)
-├─ API Server (Port 8000)
-├─ FL Server (Port 5002)
-└─ Worker Manager
-    ├─ API (Port 8091)
-    ├─ Dashboard (Port 5000)
-    └─ PostgreSQL (Port 5434)
-
-[워커 노드들]
-├── Worker #1 → 중앙서버 연결
-├── Worker #2 → 중앙서버 연결
-└── Worker #N → 중앙서버 연결
+                    ┌─────────────────────────────────────────────────────────────┐
+                    │                    Worker Manager (설치관리자)                │
+                    ├─────────────────────────────────────────────────────────────┤
+                    │                                                             │
+                    │  ┌─────────────────┐    ┌─────────────────┐                │
+                    │  │  Web Dashboard  │───▶│  Worker Manager │                │
+                    │  │   (Flask:5000)  │    │   API (FastAPI) │                │
+                    │  └─────────────────┘    │     :8091       │                │
+                    │                         └────────┬────────┘                │
+                    │                                  │                          │
+                    │                         ┌────────▼────────┐                │
+                    │                         │   PostgreSQL    │                │
+                    │                         │     :5434       │                │
+                    │                         └─────────────────┘                │
+                    │                                                             │
+                    └─────────────────────────────────────────────────────────────┘
+                                               │
+                       ┌───────────────────────┴───────────────────────┐
+                       │ 설치/배포                         설치/배포    │
+                       ▼                                              ▼
+        ┌─────────────────────────┐                    ┌─────────────────────────┐
+        │      Central Server     │                    │      Worker Nodes       │
+        ├─────────────────────────┤                    ├─────────────────────────┤
+        │ • API Server :8000      │                    │ • GPU Runtime           │
+        │ • FL Server :5002       │◀──────────────────▶│ • Ray Cluster           │
+        │ • Frontend :3000        │    학습/상태보고    │ • NCCL 분산 학습         │
+        │ • PostgreSQL :5432      │                    │ • Flask API :8001       │
+        │ • MongoDB :27017        │                    │                         │
+        │ • Redis                 │                    │                         │
+        └────────────┬────────────┘                    └─────────────────────────┘
+                     │
+                     │ 워커노드 설치파일 다운로드 요청
+                     ▼
+              Worker Manager API
 ```
 
-## 🚀 빠른 시작
+**통신 흐름:**
+- **Worker Manager → Central Server**: 중앙서버 Docker 컨테이너 설치/배포
+- **Worker Manager → Worker Nodes**: 워커노드 환경 설정 및 컨테이너 배포
+- **Central Server → Worker Manager**: 워커노드 설치 스크립트 다운로드 API 요청
+- **Worker Nodes ↔ Central Server**: 분산 학습, 상태 보고, 작업 수신
 
-### 구축형 배포 (올인원 설치) ⭐ 권장
+## 시스템 요구사항
 
-중앙 서버에 모든 서비스를 한 번에 설치합니다.
+### Worker Manager 서버
+- Docker Desktop
+- 최소 4GB RAM
+- 네트워크 접근 가능
 
-**1. 설치 파일 다운로드:**
+### 워커노드
+- Windows 10/11 (WSL2 지원)
+- NVIDIA GPU (CUDA 지원)
+- Docker Desktop
+- 최소 16GB RAM (권장 64GB)
 
-**[📥 최신 릴리즈에서 install-worker-manager.zip 다운로드](../../releases/latest)**
+## 빠른 시작
 
-> 💡 **구축형 배포**: 설치 파일만 포함된 ZIP
->
-> Releases 페이지 → Assets → install-worker-manager.zip 다운로드
+### 1. Docker Desktop 설치
 
-**2. 압축 해제 및 실행:**
+[Docker Desktop 다운로드](https://www.docker.com/products/docker-desktop/)
+
+### 2. Worker Manager 실행
 
 ```bash
-# 1. install-worker-manager.zip 압축 해제
-# 2. install-worker-manager.bat 더블클릭
-# 3. UAC 창에서 "예(Y)" 클릭
-```
-
-> ⚠️ **주의**: 저장소 Code 버튼의 "Download ZIP"이 아닌, **Releases 페이지**에서 다운로드하세요!
-
-설치 프로그램이 자동으로 GUI 창을 열고 진행 상황을 보여줍니다.
-
-**3. 설치되는 서비스:**
-
-- ✅ Central Server (Frontend, API, FL Server)
-- ✅ Worker Manager (Dashboard, API)
-- ✅ PostgreSQL 데이터베이스 x2
-- ✅ 방화벽 자동 설정
-
-**4. 접속:**
-
-- Worker Manager: `http://{서버IP}:5000` -> 중앙서버 구축
-- Frontend: `http://{서버IP}:3000` -> 노드 등록
-
-
----
-
-### 개발 환경 설치
-
-개발하거나 Worker Manager만 단독으로 설치하려는 경우:
-
-**1. 프로젝트 클론:**
-```bash
-git clone -b intownlab <repository-url>
+# 저장소 클론
+git clone https://github.com/intownlab/worker-manager.git
 cd worker-manager
+
+# 환경 변수 설정
+cp .env.example .env
+# .env 파일 수정 (LOCAL_SERVER_IP, API_TOKEN 등)
+
+# 실행
+docker compose up -d
 ```
 
-**2. Docker 이미지 빌드 및 푸시:**
-```bash
-chmod +x build.sh && ./build.sh
-```
+### 3. 대시보드 접속
 
-#### 서비스 접속
-- **Web Dashboard**: `http://<서버IP>:5000`
-  - 워커 노드 관리
-  - 워커 환경 자동 설정
-  - 모니터링
+- 대시보드: `http://<SERVER_IP>:5000`
+- API 문서: `http://<SERVER_IP>:8091/docs`
 
-- **API Server**: `http://<서버IP>:8091`
-  - RESTful API 엔드포인트
-  - `/docs`에서 API 문서 확인
-
-## 📁 프로젝트 구조
+## 프로젝트 구조
 
 ```
 worker-manager/
-├── api/                           # FastAPI 서버
-│   ├── main.py                   # API 엔드포인트
-│   ├── models.py                 # 데이터 모델
-│   ├── database.py               # DB 연결
-│   ├── worker_integration.py     # 워커 통합 기능
-│   ├── simple_worker_docker_runner.py  # 워커 실행기
-│   ├── utils.py                  # 유틸리티 함수 (LAN IP 감지 등)
-│   ├── gui/                      # GUI 기반 워커 설정
-│   │   ├── worker_setup_gui_modular.py
-│   │   └── modules/              # 설치 모듈
-│   │       ├── wsl_setup_module.py       # WSL2 설치
-│   │       ├── ubuntu_setup_module.py    # Ubuntu 설치
-│   │       ├── docker_setup_module.py    # Docker 설치
-│   │       ├── network_setup_module.py   # 네트워크 설정
-│   │       └── container_deploy_module.py # 컨테이너 배포
-│   └── central/                  # 중앙 서버 통합
-│       ├── routes.py             # 중앙 서버 라우터
-│       ├── docker_runner.py      # 중앙 서버 설치 스크립트 생성
-│       └── worker_manager.py     # Worker Manager 설치 스크립트 생성
-├── web-dashboard/                # Flask 웹 대시보드
-│   ├── app.py
-│   └── Dockerfile
-├── docker-compose.yml            # Docker Compose 설정
-├── Dockerfile                    # API 서버 Dockerfile
-├── requirements.txt              # Python 의존성
-├── install-worker-manager.bat    # 올인원 설치 파일 (GUI)
-├── start.sh                      # Linux/macOS 시작 스크립트
-└── .env.example                  # 환경변수 예제
+├── api/                        # Worker Manager API (FastAPI)
+│   ├── main.py                 # API 엔트리포인트
+│   ├── models.py               # SQLAlchemy 모델
+│   ├── database.py             # DB 연결 설정
+│   ├── worker_integration.py   # 워커노드 설정 API
+│   ├── central/                # 중앙서버 관련 라우터
+│   │   ├── routes.py           # 중앙서버 설정 엔드포인트
+│   │   └── docker_runner.py    # Docker 실행 로직
+│   ├── gui/                    # GUI 설치 모듈
+│   │   ├── worker_setup_gui_modular.py  # PowerShell GUI 생성
+│   │   └── modules/            # 모듈화된 설치 스크립트
+│   │       ├── wsl_setup_module.py
+│   │       ├── ubuntu_setup_module.py
+│   │       ├── docker_setup_module.py
+│   │       ├── network_setup_module.py
+│   │       └── container_deploy_module.py
+│   └── migrations/             # DB 마이그레이션
+├── web-dashboard/              # 웹 대시보드 (Flask)
+│   └── app.py                  # 대시보드 애플리케이션
+├── install/                    # 설치 스크립트
+│   ├── set-manager.ps1         # PowerShell 설치 스크립트
+│   └── install-set-manager.bat # Windows 배치 실행기
+├── docker-compose.yml          # Docker Compose 설정
+├── Dockerfile                  # Worker Manager API 이미지
+├── build.sh                    # 이미지 빌드 스크립트
+└── requirements.txt            # Python 의존성
 ```
 
-## 🔧 주요 기능
+## 서비스 구성
 
-### 1. 워커 환경 자동 설정
-웹 대시보드를 통해 워커 노드의 환경을 자동으로 설정합니다:
+### Docker Compose 서비스
 
-#### 자동으로 수행되는 작업
-- ✅ **WSL2 설치** - Windows 환경에서 WSL2 자동 설치 및 설정
-- ✅ **Ubuntu 설치** - Ubuntu 22.04 배포판 설치 및 사용자 설정
-- ✅ **Docker 설치** - Docker Desktop 또는 Docker CE 자동 설치
-- ✅ **네트워크 설정** - 포트 포워딩 자동 설정
-- ✅ **컨테이너 배포** - 워커 컨테이너 자동 빌드 및 실행
+| 서비스 | 포트 | 설명 |
+|--------|------|------|
+| worker-api | 8091 | Worker Manager API (FastAPI) |
+| web-dashboard | 5000 | 관리 대시보드 (Flask) |
+| postgres | 5434 | PostgreSQL 데이터베이스 |
 
-#### 모듈화된 설치 시스템
-각 단계가 독립 모듈로 구성되어 있어 문제 발생 시 해당 단계만 재실행 가능합니다.
-
-자세한 내용은 [api/gui/modules/README.md](api/gui/modules/README.md) 참조
-
-### 2. 노드 관리
-- 워커 노드 등록
-- 실시간 상태 모니터링
-- 노드 정보 업데이트
-
-### 3. 컨테이너 배포
-- Docker Compose 파일 자동 생성
-- 원격 워커에 컨테이너 배포
-- 배포 상태 실시간 확인
-
-## 📊 API 사용 예제
-
-### API 문서
-```
-http://<서버IP>:8091/docs
-```
+## API 엔드포인트
 
 ### 노드 관리
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/nodes` | 전체 노드 목록 |
+| POST | `/nodes` | 새 노드 등록 |
+| GET | `/nodes/{node_id}` | 노드 상세 정보 |
+| PUT | `/nodes/{node_id}` | 노드 정보 수정 |
+| DELETE | `/nodes/{node_id}` | 노드 삭제 |
+| POST | `/nodes/{node_id}/status` | 노드 상태 업데이트 |
+
+### 워커 설정
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/worker/setup` | 워커 설정 페이지 (HTML) |
+| POST | `/worker/environment` | 환경 설정 API |
+| GET | `/worker/download/installer` | PowerShell 설치 스크립트 다운로드 |
+
+### 중앙서버 설정
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | `/central/setup` | 중앙서버 설정 페이지 |
+| POST | `/central/deploy` | 중앙서버 배포 |
+| GET | `/central/download/installer` | 중앙서버 설치 스크립트 |
+
+## 환경 변수
+
+```env
+# 서버 설정
+LOCAL_SERVER_IP=192.168.0.100
+
+# API 인증
+API_TOKEN=your-secure-token-here
+
+# 데이터베이스
+DATABASE_URL=postgresql://worker:workerpass@postgres:5432/workerdb
+
+# 중앙서버 연결
+CENTRAL_SERVER_URL=http://192.168.0.88:8000
+
+# 대시보드
+SECRET_KEY=your-secret-key-here
+ADMIN_PASSWORD=password
+
+# 로깅
+LOG_LEVEL=INFO
+TZ=Asia/Seoul
+```
+
+## 워커노드 설치 흐름
+
+```
+1. 대시보드 접속 (/worker/setup)
+      │
+2. 설치 스크립트 다운로드 (PowerShell)
+      │
+3. 자동 환경 설정
+      ├── WSL2 활성화
+      ├── Ubuntu 설치
+      ├── Docker Desktop 연동
+      └── NVIDIA Container Toolkit
+      │
+4. 워커 컨테이너 배포
+      ├── Docker Compose 생성
+      ├── 환경 변수 설정
+      └── GPU 런타임 구성
+      │
+5. 중앙서버 연결 확인
+```
+
+## 개발 가이드
+
+### 로컬 개발 환경
+
 ```bash
-# 노드 목록 조회
-curl -H "Authorization: Bearer <API_TOKEN>" \
-  http://<서버IP>:8091/nodes
+# API 개발 서버
+cd api
+pip install -r ../requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8091 --reload
 
-# 새 노드 등록
-curl -X POST -H "Authorization: Bearer <API_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "worker-01", "description": "Worker Node 1"}' \
-  http://<서버IP>:8091/nodes
-
-# 노드 상세 정보
-curl -H "Authorization: Bearer <API_TOKEN>" \
-  http://<서버IP>:8091/nodes/{node_id}
-
-# 시스템 통계
-curl -H "Authorization: Bearer <API_TOKEN>" \
-  http://<서버IP>:8091/stats
+# 대시보드 개발 서버
+cd web-dashboard
+pip install -r requirements.txt
+python app.py
 ```
 
-## ⚙️ 환경변수
+### Docker 이미지 빌드
 
-`.env` 파일에서 설정 가능한 환경변수:
-
-### 필수 설정
-| 변수 | 설명 | 예시 |
-|------|------|------|
-| `LOCAL_SERVER_IP` | Worker Manager 서버의 로컬 IP | `192.168.0.88` |
-| `API_TOKEN` | API 인증 토큰 | `your-secure-token` |
-
-### 선택 설정
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `CENTRAL_SERVER_URL` | 중앙 서버 URL (통합 사용 시) | - |
-| `DATABASE_URL` | PostgreSQL 연결 문자열 | `postgresql://worker:workerpass@postgres:5432/workerdb` |
-| `TZ` | 타임존 | `Asia/Seoul` |
-
-## 🔧 문제 해결
-
-### 올인원 설치 관련
-
-#### Docker가 설치되지 않음
-**증상**: "Docker is not installed or not running!" 오류
-**해결**:
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop) 다운로드 및 설치
-2. Docker Desktop 실행 후 WSL2 백엔드 활성화
-3. 설치 스크립트 재실행
-
-#### LAN IP 자동 감지 실패
-**증상**: "Could not detect LAN IP automatically" 경고
-**해결**:
-- 수동으로 서버 LAN IP 입력 (예: 192.168.0.88)
-- `ipconfig` 명령어로 본인의 IP 확인 후 입력
-
-#### 방화벽 설정 실패
-**증상**: 외부에서 서비스 접속 불가
-**해결**:
-```powershell
-# 관리자 권한으로 PowerShell 실행
-# 포트 3000, 5000, 5002, 8000, 8091 수동 개방
-New-NetFirewallRule -DisplayName "DistributedAI" -Direction Inbound -Protocol TCP -LocalPort 3000,5000,5002,8000,8091 -Action Allow
-```
-
-#### 서비스 시작 확인
 ```bash
-# 중앙 서버 컨테이너 상태
-cd %USERPROFILE%\intown-central
-docker-compose ps
+# Git Bash에서 실행
+chmod +x build.sh
+./build.sh
 
-# Worker Manager 컨테이너 상태
-cd %USERPROFILE%\worker-manager
-docker-compose ps
+# 노캐시 빌드
+./build.sh --no-cache
 ```
 
----
+### 데이터베이스 마이그레이션
 
-### 개발 환경 관련
+마이그레이션은 API 서버 시작 시 자동으로 실행됩니다.
 
-#### Docker 접속 안 됨 (Windows)
-**증상**: `localhost:8091` 접속 실패
-**원인**: WSL2 백엔드 사용 시 Docker가 별도 네트워크에서 실행
-**해결**:
-```powershell
-# 본인의 실제 IP 확인
-ipconfig
-
-# 해당 IP로 접속 (예: 192.168.0.88:8091)
+```python
+# api/main.py에서 자동 마이그레이션
+# - vpn_ip UNIQUE 제약조건 제거
+# - owner_id 컬럼 추가
 ```
 
-### 컨테이너 시작 실패
-**증상**: `docker-compose up` 실패
-**해결**:
-```powershell
-# 로그 확인
-docker-compose logs
+## 워커노드 Docker Compose 설정
 
-# 기존 컨테이너 완전 삭제 후 재시작
-docker-compose down -v
-docker-compose up -d
+워커노드는 다음 환경으로 배포됩니다:
+
+### 주요 환경 변수
+
+- `NODE_ID`: 노드 식별자
+- `CENTRAL_SERVER_IP`: 중앙서버 IP
+- `OWNER_ID`: 노드 소유자 ID
+- `NCCL_*`: 분산 학습 설정
+- `RAY_*`: Ray 클러스터 설정
+
+### 포트 매핑
+
+| 포트 | 용도 |
+|------|------|
+| 8001 | Flask API |
+| 6379 | Ray GCS/Redis |
+| 10001 | Ray Client |
+| 8265 | Ray Dashboard |
+| 29500-29509 | DDP TCPStore |
+| 29510 | NCCL Socket |
+
+### GPU 설정
+
+```yaml
+runtime: nvidia
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          capabilities: [gpu]
+          count: all
 ```
 
-## 📚 추가 문서
+## 문제 해결
 
-- [GUI 모듈 상세 가이드](api/gui/modules/README.md)
-- [FastAPI 문서](http://<서버IP>:8091/docs)
+### Docker Desktop이 시작되지 않음
 
-## 🔐 보안
+1. WSL2가 설치되어 있는지 확인
+2. Windows 기능에서 "가상 머신 플랫폼" 활성화
+3. BIOS에서 가상화 기능 활성화
 
-- API 토큰 기반 인증
-- 최소 권한 원칙 적용
-- 환경변수를 통한 민감 정보 관리
+### 워커노드가 중앙서버에 연결되지 않음
 
+1. 방화벽 설정 확인 (포트 8000, 8001)
+2. `CENTRAL_SERVER_IP` 환경 변수 확인
+3. 네트워크 연결 상태 확인
+
+### GPU가 인식되지 않음
+
+1. NVIDIA 드라이버 설치 확인
+2. Docker Desktop에서 WSL2 통합 활성화
+3. `nvidia-smi` 명령어로 GPU 상태 확인
+
+## 라이선스
+
+Copyright 2025 INTOWN Co., Ltd. All rights reserved.
