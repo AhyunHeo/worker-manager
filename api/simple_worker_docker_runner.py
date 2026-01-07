@@ -421,6 +421,7 @@ REM Create .env file
 echo Creating .env file...
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'NODE_ID={node.node_id}' > .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'DESCRIPTION={metadata.get('description', 'Worker Node')}' >> .env"
+wsl bash -c "cd ~/worker-{node.node_id} && echo 'OWNER_ID={metadata.get('owner_id', '')}' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'CENTRAL_SERVER_IP={central_ip}' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'CENTRAL_SERVER_URL=http://{central_ip}:8000' >> .env"
 wsl bash -c "cd ~/worker-{node.node_id} && echo 'WORKER_IP={node.vpn_ip}' >> .env"
@@ -606,6 +607,7 @@ echo.
 echo # Node Configuration
 echo NODE_ID={node.node_id}
 echo DESCRIPTION={metadata.get('description', 'Worker Node')}
+echo OWNER_ID={metadata.get('owner_id', '')}
 echo CENTRAL_SERVER_IP={central_ip}
 echo CENTRAL_SERVER_URL=http://{central_ip}:8000
 echo HOST_IP={worker_ip}
@@ -650,6 +652,7 @@ set CENTRAL_SERVER_IP={central_ip}
 set HOST_IP={worker_ip}
 set WORKER_IP={worker_ip}
 set DESCRIPTION={metadata.get('description', 'Worker Node')}
+set OWNER_ID={metadata.get('owner_id', '')}
 set IMAGE_NAME=intownlab/worker-node-prod
 set TAG={DOCKER_TAG}
 

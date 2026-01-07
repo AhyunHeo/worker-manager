@@ -72,6 +72,23 @@ try:
 except Exception as e:
     logger.warning(f"Migration check failed (this is normal on first run): {e}")
 
+# 마이그레이션: owner_id 컬럼 추가
+try:
+    from sqlalchemy import text, inspect
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        columns = [col['name'] for col in inspector.get_columns('nodes')]
+
+        if 'owner_id' not in columns:
+            logger.info("Adding owner_id column to nodes table...")
+            conn.execute(text("ALTER TABLE nodes ADD COLUMN owner_id VARCHAR(255)"))
+            conn.commit()
+            logger.info("Migration completed: owner_id column added")
+        else:
+            logger.info("owner_id column already exists")
+except Exception as e:
+    logger.warning(f"owner_id migration check failed: {e}")
+
 app = FastAPI(
     title="Worker Manager API",
     description="워커 노드 환경 설정 및 컨테이너 배포 시스템",

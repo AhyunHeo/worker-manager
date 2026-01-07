@@ -276,34 +276,8 @@ function Setup-WSL2 {
             
             if (-not $wslVer) {
                 Write-Host "[DEBUG] WSL is installed but version info could not be parsed"
-                
-                # 버전 정보를 파싱할 수 없는 경우 업데이트 시도
-                Write-Host "[DEBUG] Attempting to update WSL to latest version"
-                $updateProcess = Start-Process -FilePath "wsl.exe" `
-                    -ArgumentList "--update" `
-                    -NoNewWindow -Wait -PassThru `
-                    -RedirectStandardOutput "$env:TEMP\wsl_update_out.txt" `
-                    -RedirectStandardError "$env:TEMP\wsl_update_err.txt"
-                
-                if ($updateProcess.ExitCode -eq 0) {
-                    Write-Host "[SUCCESS] WSL updated to latest version"
-                } else {
-                    # 업데이트 실패 시 웹 다운로드 시도
-                    Write-Host "[DEBUG] Trying web download method"
-                    $webUpdateProcess = Start-Process -FilePath "wsl.exe" `
-                        -ArgumentList "--update", "--web-download" `
-                        -NoNewWindow -Wait -PassThru 2>$null
-                    
-                    if ($webUpdateProcess.ExitCode -eq 0) {
-                        Write-Host "[SUCCESS] WSL updated via web download"
-                    } else {
-                        Write-Host "[WARNING] WSL update failed, continuing with existing version"
-                    }
-                }
-                
-                # 정리
-                Remove-Item "$env:TEMP\wsl_update_out.txt" -Force -ErrorAction SilentlyContinue
-                Remove-Item "$env:TEMP\wsl_update_err.txt" -Force -ErrorAction SilentlyContinue
+                Write-Host "[INFO] WSL is working, skipping update to avoid delays"
+                # WSL이 작동하고 있으므로 업데이트는 스킵하고 진행
             }
             
             return @{

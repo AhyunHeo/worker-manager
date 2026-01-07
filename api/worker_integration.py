@@ -54,6 +54,7 @@ class WorkerEnvironmentRequest(BaseModel):
     description: str
     central_server_ip: Optional[str] = None
     hostname: Optional[str] = None
+    owner_id: Optional[str] = None  # 노드 소유자 ID
 
 @router.get("/worker/setup")
 async def worker_setup_page():
@@ -516,7 +517,8 @@ async def generate_worker_qr(
             "description": request.description,
             "central_server_ip": central_ip,
             "central_server_url": central_url,
-            "hostname": request.hostname or request.node_id
+            "hostname": request.hostname or request.node_id,
+            "owner_id": request.owner_id  # 노드 소유자 ID
         }
         
         # Node 테이블에 예비 등록 (config는 나중에 생성)
@@ -531,7 +533,8 @@ async def generate_worker_qr(
             central_server_url=central_url,
             docker_env_vars=json.dumps(metadata),
             status="pending",  # 아직 VPN 설정 전
-            vpn_ip=None  # pending 상태에서는 None (unique constraint 충돌 방지)
+            vpn_ip=None,  # pending 상태에서는 None (unique constraint 충돌 방지)
+            owner_id=request.owner_id  # 노드 소유자 ID
         )
         
         # 중복 체크 및 업데이트
@@ -543,12 +546,14 @@ async def generate_worker_qr(
                 existing.central_server_url = central_url
                 existing.hostname = request.hostname or request.node_id
                 existing.docker_env_vars = json.dumps(metadata)
+                existing.owner_id = request.owner_id  # 소유자 ID 업데이트
                 existing.updated_at = datetime.now(timezone.utc)
             else:  # pending 상태면 메타데이터만 업데이트
                 existing.description = request.description
                 existing.central_server_url = central_url
                 existing.hostname = request.hostname or request.node_id
                 existing.docker_env_vars = json.dumps(metadata)
+                existing.owner_id = request.owner_id  # 소유자 ID 업데이트
                 existing.updated_at = datetime.now(timezone.utc)
         else:
             # 새 노드 추가 (임시로 pending 상태)

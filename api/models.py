@@ -24,6 +24,7 @@ class Node(Base):
     description = Column(String)  # 워커노드 설명 (예: "2080-test")
     central_server_url = Column(String)  # 중앙서버 공개 URL (예: http://192.168.0.88:8000)
     docker_env_vars = Column(Text)  # Docker Compose 환경변수 저장
+    owner_id = Column(String, nullable=True)  # 노드 소유자 ID
 
 class QRToken(Base):
     """QR 코드 토큰 저장"""

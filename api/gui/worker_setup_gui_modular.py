@@ -132,6 +132,7 @@ public class Win32 {{
 # 전역 변수
 $global:NODE_ID = '{node.node_id}'
 $global:VPN_IP = '{node.vpn_ip}'
+$global:OWNER_ID = '{metadata.get("owner_id", "")}'
 $global:CENTRAL_IP = '{central_ip}'
 $global:SERVER_IP = '{server_ip}'
 $global:currentStep = 1
@@ -1057,30 +1058,7 @@ try {{
     batch_lines.append('net session >nul 2>&1')
     batch_lines.append('if %errorLevel% neq 0 (')
     batch_lines.append('    echo [%time%] Requesting administrator privileges... >> "%LOGFILE%"')
-    batch_lines.append('    echo [%time%] UAC dialog will appear. Please click Yes to continue. >> "%LOGFILE%"')
-    batch_lines.append('    ')
-    batch_lines.append('    REM 관리자 권한 요청 및 실패 시 에러 처리')
     batch_lines.append('    powershell -Command "Start-Process cmd -ArgumentList \'/c \\"%~f0\\" ADMIN_RUN\' -WindowStyle Hidden -Verb RunAs"')
-    batch_lines.append('    if %ERRORLEVEL% NEQ 0 (')
-    batch_lines.append('        echo [%time%] ERROR: Failed to obtain administrator privileges >> "%LOGFILE%"')
-    batch_lines.append('        echo [%time%] User may have clicked No on UAC dialog >> "%LOGFILE%"')
-    batch_lines.append('        echo.')
-    batch_lines.append('        echo ==========================================')
-    batch_lines.append('        echo ERROR: Administrator privileges required!')
-    batch_lines.append('        echo ==========================================')
-    batch_lines.append('        echo.')
-    batch_lines.append('        echo This setup requires administrator privileges to:')
-    batch_lines.append('        echo   - Configure network settings')
-    batch_lines.append('        echo   - Install Docker containers')
-    batch_lines.append('        echo   - Set up WSL2')
-    batch_lines.append('        echo.')
-    batch_lines.append('        echo Please run this script again and click Yes')
-    batch_lines.append('        echo when the UAC dialog appears.')
-    batch_lines.append('        echo.')
-    batch_lines.append('        echo Log file: %LOGFILE%')
-    batch_lines.append('        pause')
-    batch_lines.append('        exit /b 1')
-    batch_lines.append('    )')
     batch_lines.append('    exit')
     batch_lines.append(')')
     batch_lines.append('')
