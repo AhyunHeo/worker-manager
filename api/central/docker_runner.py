@@ -276,7 +276,7 @@ try {{
     }}
     Set-Location $workDir
     
-    @('config', 'session_models', 'uploads', 'app\\data\\uploads') | ForEach-Object {{
+    @('session_models') | ForEach-Object {{
         if (-not (Test-Path $_)) {{
             New-Item -ItemType Directory -Path $_ -Force | Out-Null
         }}
@@ -298,10 +298,7 @@ services:
     ports:
       - "0.0.0.0:{metadata.get('api_port', 8000)}:8000"
     volumes:
-      - ./config:/app/config:ro
       - ./session_models:/app/session_models
-      - ./uploads:/app/uploads
-      - ./app/data/uploads:/app/data/uploads
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/ai_db
       - MONGODB_URL=mongodb://mongo:27017/ai_logs
@@ -324,9 +321,7 @@ services:
     ports:
       - "0.0.0.0:{metadata.get('fl_port', 5002)}:5002"
     volumes:
-      - ./config:/app/config:ro
       - ./session_models:/app/session_models
-      - ./uploads:/app/uploads
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/ai_db
       - MONGODB_URL=mongodb://mongo:27017/ai_logs
@@ -561,16 +556,7 @@ WS_MESSAGE_QUEUE_SIZE=100
     $script:webAppUrl = "http://{local_ip}:{metadata.get('frontend_port', 3000)}"
 
     [System.Windows.Forms.MessageBox]::Show(
-        "Central Server Started Successfully!`n`n" +
-        "Access URLs:`n" +
-        "- Frontend: http://{local_ip}:{metadata.get('frontend_port', 3000)}`n" +
-        "- API: http://{local_ip}:{metadata.get('api_port', 8000)}`n" +
-        "- FL Server: http://{local_ip}:{metadata.get('fl_port', 5002)}`n`n" +
-        "Network Configuration:`n" +
-        "- WSL IP: $wslIP`n" +
-        "- Port Forwarding: $portForwardSuccess/$($ports.Count) ports configured`n" +
-        "- Firewall Rules: $firewallSuccess/$($ports.Count) rules added`n`n" +
-        "Configured Ports: 3000, 8000, 5002, 5000, 8091, 5432, 27017",
+        "Central Server Started Successfully!`n`nAccess URL:`nhttp://{local_ip}:{metadata.get('frontend_port', 3000)}",
         'Success',
         'OK',
         'Information'

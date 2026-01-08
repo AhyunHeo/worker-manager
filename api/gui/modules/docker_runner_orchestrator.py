@@ -951,7 +951,7 @@ echo "NVIDIA Container Toolkit installation completed"
             Update-Progress '✅ 설치 완료! Worker 노드가 실행 중입니다.' 100
             
             [System.Windows.Forms.MessageBox]::Show(
-                "Worker Node 설치가 완료되었습니다!`n`nNode ID: $global:NODE_ID`nVPN IP: $global:VPN_IP`nStatus: Running",
+                "Worker Node 설치가 완료되었습니다!`n`nNode ID: $global:NODE_ID`nStatus: Running",
                 "설치 완료",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Information
