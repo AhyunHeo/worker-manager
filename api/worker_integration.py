@@ -235,9 +235,22 @@ async def worker_setup_page(owner_id: Optional[Union[str, int]] = None):
                 
                 <div class="form-group">
                     <label for="central_server_ip">중앙서버 IP</label>
-                    <input type="text" id="central_server_ip" name="central_server_ip" 
-                           value="{central_server_url.replace('http://', '').replace('https://', '').split(':')[0]}" 
-                           placeholder="예: 192.168.0.88">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <input type="text" id="central_server_ip" name="central_server_ip"
+                               value="{central_server_url.replace('http://', '').replace('https://', '').split(':')[0]}"
+                               placeholder="예: 192.168.0.88"
+                               style="flex: 1;">
+                        <button type="button" onclick="checkCentralIP()"
+                                style="padding: 12px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; white-space: nowrap; transition: all 0.3s; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);"
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(16, 185, 129, 0.4)';"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(16, 185, 129, 0.3)';">
+                            IP 확인
+                        </button>
+                    </div>
+                    <small style="color: #64748b; display: block; margin-top: 5px;">
+                        워커노드가 연결할 중앙서버의 IP 주소를 입력하세요
+                    </small>
+                    <div id="centralIpCheckResult" style="display: none; margin-top: 10px; padding: 12px; border-radius: 8px;"></div>
                 </div>
                 
                 <button type="submit" class="btn">QR 코드 생성</button>
@@ -354,6 +367,63 @@ async def worker_setup_page(owner_id: Optional[Union[str, int]] = None):
                 setTimeout(() => {{
                     btn.textContent = originalText;
                 }}, 2000);
+            }}
+
+            async function checkCentralIP() {{
+                const resultDiv = document.getElementById('centralIpCheckResult');
+                // 현재 페이지를 제공하는 서버 = 중앙서버 (통합설치매니저)
+                const centralServerIP = window.location.hostname;
+
+                resultDiv.style.display = 'block';
+
+                if (centralServerIP && centralServerIP !== 'localhost' && centralServerIP !== '127.0.0.1') {{
+                    // 유효한 IP인 경우
+                    if (centralServerIP.startsWith('192.168.') || centralServerIP.startsWith('10.') || centralServerIP.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)) {{
+                        // LAN IP인 경우
+                        resultDiv.style.background = '#dcfce7';
+                        resultDiv.style.border = '1px solid #bbf7d0';
+                        resultDiv.innerHTML = `
+                            <span style="color: #16a34a;">
+                                <strong>중앙서버 IP:</strong> ${{centralServerIP}}<br>
+                                <small>이 페이지를 제공하는 서버(통합설치매니저/중앙서버)의 IP입니다.</small>
+                            </span>
+                            <button type="button" onclick="document.getElementById('central_server_ip').value='${{centralServerIP}}'"
+                                    style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                이 IP 사용하기
+                            </button>`;
+                    }} else if (centralServerIP.startsWith('172.')) {{
+                        // Docker 내부 IP일 수 있음
+                        resultDiv.style.background = '#fef3c7';
+                        resultDiv.style.border = '1px solid #fde68a';
+                        resultDiv.innerHTML = `
+                            <span style="color: #d97706;">
+                                <strong>감지된 IP:</strong> ${{centralServerIP}}<br>
+                                <small>Docker 내부 IP로 보입니다. 중앙서버의 실제 LAN IP (예: 192.168.x.x)를 입력해주세요.</small>
+                            </span>`;
+                    }} else {{
+                        // 기타 IP (공인 IP 등)
+                        resultDiv.style.background = '#dcfce7';
+                        resultDiv.style.border = '1px solid #bbf7d0';
+                        resultDiv.innerHTML = `
+                            <span style="color: #16a34a;">
+                                <strong>중앙서버 IP:</strong> ${{centralServerIP}}<br>
+                                <small>이 페이지를 제공하는 서버의 IP입니다.</small>
+                            </span>
+                            <button type="button" onclick="document.getElementById('central_server_ip').value='${{centralServerIP}}'"
+                                    style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                이 IP 사용하기
+                            </button>`;
+                    }}
+                }} else {{
+                    // localhost나 127.0.0.1인 경우
+                    resultDiv.style.background = '#fef3c7';
+                    resultDiv.style.border = '1px solid #fde68a';
+                    resultDiv.innerHTML = `
+                        <span style="color: #d97706;">
+                            <strong>현재 접속:</strong> ${{centralServerIP || 'localhost'}}<br>
+                            <small>로컬 접속입니다. 중앙서버의 실제 LAN IP (예: 192.168.x.x)를 입력해주세요.</small>
+                        </span>`;
+                }}
             }}
         </script>
     </body>

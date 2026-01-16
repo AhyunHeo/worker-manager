@@ -3,7 +3,7 @@ Central Server API Routes
 중앙서버 등록과 Docker 설정을 위한 엔드포인트
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -44,6 +44,28 @@ class CentralEnvironmentRequest(BaseModel):
     dashboard_port: Optional[int] = 5000
     db_port: Optional[int] = 5432
     mongo_port: Optional[int] = 27017
+
+@router.get("/central/check-ip")
+async def check_client_ip(request: Request):
+    """클라이언트의 실제 IP 주소 확인"""
+    # X-Forwarded-For 헤더 확인 (프록시/로드밸런서 뒤에 있을 경우)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # 첫 번째 IP가 실제 클라이언트 IP
+        client_ip = forwarded_for.split(",")[0].strip()
+    else:
+        # 직접 연결된 경우
+        client_ip = request.client.host if request.client else "unknown"
+
+    # Docker 내부 IP 필터링 (172.x.x.x는 Docker 브릿지 네트워크)
+    is_docker_ip = client_ip.startswith("172.") or client_ip.startswith("10.") or client_ip == "127.0.0.1"
+
+    return {
+        "client_ip": client_ip,
+        "is_private_network": client_ip.startswith("192.168.") or client_ip.startswith("10.") or client_ip.startswith("172."),
+        "is_docker_internal": is_docker_ip and not client_ip.startswith("192.168."),
+        "note": "Docker 내부에서 접속한 경우 실제 IP와 다를 수 있습니다" if is_docker_ip else None
+    }
 
 @router.get("/central/setup")
 async def central_setup_page():
@@ -212,20 +234,30 @@ async def central_setup_page():
     </head>
     <body>
         <div class="container">
-            <h1>🐳 중앙서버 Docker 설정</h1>
+            <h1>중앙서버 통합 설정</h1>
             <p class="subtitle">중앙서버 Docker 실행을 위한 설정을 생성합니다</p>
             
             <form id="centralForm">
                 <div class="form-group">
                     <label for="server_ip">중앙서버 IP 주소 *</label>
-                    <input type="text" id="server_ip" name="server_ip" required 
-                           value="192.168.0.88" 
-                           placeholder="예: 192.168.0.88" 
-                           pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
-                           title="올바른 IP 주소를 입력해주세요">
+                    <div style="display: flex; gap: 10px; align-items: flex-start;">
+                        <input type="text" id="server_ip" name="server_ip" required
+                               value="192.168.0.88"
+                               placeholder="예: 192.168.0.88"
+                               pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+                               title="올바른 IP 주소를 입력해주세요"
+                               style="flex: 1;">
+                        <button type="button" onclick="checkIP()"
+                                style="padding: 12px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; white-space: nowrap; transition: all 0.3s; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);"
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(16, 185, 129, 0.4)';"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(16, 185, 129, 0.3)';">
+                            IP 확인
+                        </button>
+                    </div>
                     <small style="color: #666; display: block; margin-top: 5px;">
-                        중앙서버가 실행될 실제 IP 주소를 입력하세요
+                        중앙서버는 통합설치 매니저와 같은 서버에 설치하는 것을 권장합니다
                     </small>
+                    <div id="ipCheckResult" style="display: none; margin-top: 10px; padding: 12px; border-radius: 8px;"></div>
                 </div>
                 
                 <input type="hidden" id="node_id" name="node_id" value="central-server-01">
@@ -406,6 +438,114 @@ async def central_setup_page():
                     return num >= 0 && num <= 255;
                 });
             }
+
+            async function checkIP() {
+                const resultDiv = document.getElementById('ipCheckResult');
+                const ipInput = document.getElementById('server_ip');
+                const managerIP = window.location.hostname; // 통합설치매니저 IP
+
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f0f9ff';
+                resultDiv.style.border = '1px solid #bae6fd';
+                resultDiv.innerHTML = '<span style="color: #0284c7;">현재 접속 IP 확인 중...</span>';
+
+                try {
+                    const response = await fetch('/central/check-ip', {
+                        method: 'GET',
+                        signal: AbortSignal.timeout(5000)
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const clientIP = data.client_ip;
+
+                        if (data.is_docker_internal) {
+                            // Docker 내부 IP인 경우 - 통합설치매니저 IP 사용 권장
+                            if (managerIP && managerIP !== 'localhost' && managerIP !== '127.0.0.1' && managerIP.startsWith('192.168.')) {
+                                resultDiv.style.background = '#dcfce7';
+                                resultDiv.style.border = '1px solid #bbf7d0';
+                                resultDiv.innerHTML = `
+                                    <span style="color: #16a34a;">
+                                        <strong>통합설치매니저 IP:</strong> ${managerIP}<br>
+                                        <small>중앙서버를 같은 서버에 설치하려면 이 IP를 사용하세요.</small>
+                                    </span>
+                                    <button type="button" onclick="document.getElementById('server_ip').value='${managerIP}'"
+                                            style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                        이 IP 사용하기
+                                    </button>`;
+                            } else {
+                                resultDiv.style.background = '#fef3c7';
+                                resultDiv.style.border = '1px solid #fde68a';
+                                resultDiv.innerHTML = `
+                                    <span style="color: #d97706;">
+                                        <strong>감지된 IP:</strong> ${clientIP}<br>
+                                        <small>Docker 내부 IP로 감지되었습니다. 실제 LAN IP (예: 192.168.x.x)를 직접 입력해주세요.</small>
+                                    </span>`;
+                            }
+                        } else if (clientIP.startsWith('192.168.')) {
+                            // 192.168.x.x LAN IP인 경우
+                            const isSameAsManager = (clientIP === managerIP);
+                            resultDiv.style.background = '#dcfce7';
+                            resultDiv.style.border = '1px solid #bbf7d0';
+                            resultDiv.innerHTML = `
+                                <span style="color: #16a34a;">
+                                    <strong>현재 접속 IP:</strong> ${clientIP}
+                                    ${isSameAsManager ? '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">통합설치매니저와 동일</span>' : ''}
+                                    <br>
+                                    <small>${isSameAsManager ? '통합설치매니저와 같은 서버입니다. 권장 설정입니다.' : '이 컴퓨터에서 중앙서버를 실행하려면 이 IP를 사용하세요.'}</small>
+                                </span>
+                                <button type="button" onclick="document.getElementById('server_ip').value='${clientIP}'"
+                                        style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                    이 IP 사용하기
+                                </button>`;
+                        } else {
+                            // 기타 IP (공인 IP 등) - 통합설치매니저 IP 사용 권장
+                            if (managerIP && managerIP !== 'localhost' && managerIP !== '127.0.0.1' && managerIP.startsWith('192.168.')) {
+                                resultDiv.style.background = '#dcfce7';
+                                resultDiv.style.border = '1px solid #bbf7d0';
+                                resultDiv.innerHTML = `
+                                    <span style="color: #16a34a;">
+                                        <strong>통합설치매니저 IP:</strong> ${managerIP}<br>
+                                        <small>중앙서버를 같은 서버에 설치하려면 이 IP를 사용하세요.</small>
+                                    </span>
+                                    <button type="button" onclick="document.getElementById('server_ip').value='${managerIP}'"
+                                            style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                        이 IP 사용하기
+                                    </button>`;
+                            } else {
+                                resultDiv.style.background = '#fef3c7';
+                                resultDiv.style.border = '1px solid #fde68a';
+                                resultDiv.innerHTML = `
+                                    <span style="color: #d97706;">
+                                        <strong>감지된 IP:</strong> ${clientIP}<br>
+                                        <small>LAN IP가 아닙니다. 중앙서버가 실행될 컴퓨터의 실제 LAN IP (예: 192.168.x.x)를 입력해주세요.</small>
+                                    </span>`;
+                            }
+                        }
+                    } else {
+                        throw new Error('IP 확인 실패');
+                    }
+                } catch (error) {
+                    // API 실패 시 통합설치매니저 IP 추천
+                    if (managerIP && managerIP !== 'localhost' && managerIP !== '127.0.0.1' && managerIP.startsWith('192.168.')) {
+                        resultDiv.style.background = '#dcfce7';
+                        resultDiv.style.border = '1px solid #bbf7d0';
+                        resultDiv.innerHTML = `
+                            <span style="color: #16a34a;">
+                                <strong>통합설치매니저 IP:</strong> ${managerIP}<br>
+                                <small>중앙서버를 같은 서버에 설치하려면 이 IP를 사용하세요.</small>
+                            </span>
+                            <button type="button" onclick="document.getElementById('server_ip').value='${managerIP}'"
+                                    style="margin-top: 8px; padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                                이 IP 사용하기
+                            </button>`;
+                    } else {
+                        resultDiv.style.background = '#fef2f2';
+                        resultDiv.style.border = '1px solid #fecaca';
+                        resultDiv.innerHTML = '<span style="color: #dc2626;">IP 확인 중 오류가 발생했습니다</span>';
+                    }
+                }
+            }
         </script>
     </body>
     </html>
@@ -522,7 +662,7 @@ async def get_docker_runner(node_id: str, db: Session = Depends(get_db)):
         # Return file response
         return FileResponse(
             path=temp_path,
-            filename=f"docker-runner-{node_id}.bat",
+            filename="DistributedAI platform-v2.0-install-central.bat",
             media_type="application/x-bat",
             headers={
                 "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -715,7 +855,7 @@ async def central_install_page(token: str, db: Session = Depends(get_db)):
     </head>
     <body>
         <div class="container">
-            <h1>🐳 중앙서버 Docker 설치</h1>
+            <h1>중앙서버 통합 설정</h1>
             
             <div class="info-card">
                 <div class="info-row">
@@ -773,12 +913,12 @@ async def central_install_page(token: str, db: Session = Depends(get_db)):
                 </div>
                 
                 <div style="margin: 24px 0; padding: 20px; background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 12px;">
-                    <h4 style="color: #14532d; margin-bottom: 12px; font-size: 18px;">🚀 간단한 Docker 실행</h4>
+                    <h4 style="color: #14532d; margin-bottom: 12px; font-size: 18px;">간단한 Docker 실행</h4>
                     <p style="color: #166534; font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
                         아래 BAT 파일을 다운로드하여 실행하면 <strong>중앙서버가 자동으로 시작</strong>됩니다.
                     </p>
-                    <button class="btn" onclick="downloadDockerRunner()" style="width: 100%; background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);">
-                        🐳 Docker 실행 파일 다운로드
+                    <button class="btn" onclick="downloadDockerRunner()" style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                        실행 파일 다운로드 (.bat)
                     </button>
                 </div>
                 

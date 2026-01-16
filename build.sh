@@ -38,13 +38,14 @@ if [ -n "$NO_CACHE" ]; then
 fi
 echo ""
 
-# 프로젝트 루트 디렉토리로 이동
-cd ..
+# 스크립트 위치로 이동 (worker-manager 디렉토리)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # 기본 서버 이미지 빌드
 echo ""
 echo "[1/2] 통합 설치 관리자 이미지 빌드 중..."
-docker build ${NO_CACHE} -f worker-manager/Dockerfile -t ${FULL_IMAGE}:${VERSION} .
+docker build ${NO_CACHE} -f Dockerfile -t ${FULL_IMAGE}:${VERSION} .
 
 if [ $? -eq 0 ]; then
     echo "✓ 통합 설치 관리자 이미지 빌드 성공"
@@ -56,7 +57,7 @@ fi
 # 대시보드 이미지 빌드 (수정사항 있으면 주석 해제)
 echo ""
 echo "[2/2] 대시보드 보호 이미지 빌드 중..."
-docker build ${NO_CACHE} -f worker-manager/web-dashboard/Dockerfile -t ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} .
+docker build ${NO_CACHE} -f web-dashboard/Dockerfile -t ${FULL_IMAGE_DASHBOARD}:${VERSION_DASHBOARD} .
 
 if [ $? -eq 0 ]; then
     echo "✓ 대시보드 보호 이미지 빌드 성공"
@@ -103,4 +104,3 @@ echo ""
 echo "========================================="
 echo "모든 이미지 푸시 완료!"
 echo "========================================="
-

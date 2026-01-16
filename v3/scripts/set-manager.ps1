@@ -31,7 +31,15 @@ if (-not $isAdmin) {
     Write-Log "[ACTION] Requesting administrator privileges..."
 
     try {
-        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`"" -Verb RunAs
+        # exe 또는 ps1 모두 지원
+        $exePath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+        if ($exePath -match '\.exe$' -and $exePath -notmatch 'powershell') {
+            # exe로 실행 중인 경우
+            Start-Process $exePath -Verb RunAs
+        } else {
+            # ps1로 실행 중인 경우
+            Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`"" -Verb RunAs
+        }
         Write-Log "[INFO] Administrator request sent"
         exit
     } catch {

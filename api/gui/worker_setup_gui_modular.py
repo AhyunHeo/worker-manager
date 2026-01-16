@@ -157,6 +157,8 @@ $global:detailLabel = $null
 $global:startButton = $null
 $global:closeButton = $null
 $global:tempDistroName = $null
+$global:dotAnimationTimer = $null
+$global:dotCount = 0
 
 # 포괄적인 정리 함수 정의
 function Cleanup-OnExit {{
@@ -499,6 +501,17 @@ $closeButton.FlatStyle = 'Flat'
 $closeButton.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(226,232,240)
 $form.Controls.Add($closeButton)
 
+# 점(...) 애니메이션 타이머
+$global:dotAnimationTimer = New-Object System.Windows.Forms.Timer
+$global:dotAnimationTimer.Interval = 400
+$global:dotAnimationTimer.Add_Tick({{
+    $currentText = $statusLabel.Text -replace '\\.+$', ''
+    $global:dotCount = ($global:dotCount + 1) % 4
+    $dots = '.' * $global:dotCount
+    $statusLabel.Text = $currentText + $dots
+    [System.Windows.Forms.Application]::DoEvents()
+}})
+
 # 간단한 Update Progress 함수 (로그 파일에만 기록)
 function Update-Progress {{
     param($message, $percent)
@@ -542,14 +555,18 @@ function Start-CompleteSetup {{
     # 설치 시작 상태 설정
     $global:isInstalling = $true
     $global:installationCancelled = $false
-    
+
     $startButton.Enabled = $false
     $closeButton.Text = '취소'
     $closeButton.Enabled = $true
-    
-    $statusLabel.Text = "Worker Node 설치를 시작합니다..."
+
+    $statusLabel.Text = "Worker Node 설치를 시작합니다"
     $progressBar.Value = 0
-    
+
+    # 점 애니메이션 시작
+    $global:dotCount = 0
+    $global:dotAnimationTimer.Start()
+
     Update-Progress '설치 시작' 5
     
     # Step 1: 네트워크 설정
@@ -572,6 +589,8 @@ function Start-CompleteSetup {{
         
         if (-not $vpnResult) {{
             $global:isInstalling = $false
+            # 점 애니메이션 타이머 정지
+            try {{ $global:dotAnimationTimer.Stop() }} catch {{ }}
             $statusLabel.Text = "네트워크 설정 실패"
             $detailLabel.Text = "로그 파일을 확인하세요."
             $statusLabel.ForeColor = [System.Drawing.Color]::Red
@@ -660,12 +679,6 @@ function Start-CompleteSetup {{
                 }}
             }}
             
-            # 진행바 애니메이션 (55-90% 사이에서 천천히 증가)
-            if ($progressBar.Value -lt 90) {{
-                $increment = [Math]::Min(1, (90 - $progressBar.Value) / 100)
-                $progressBar.Value = [Math]::Min(90, $progressBar.Value + $increment)
-            }}
-            
             [System.Windows.Forms.Application]::DoEvents()
         }}
     }})
@@ -708,6 +721,10 @@ function Start-CompleteSetup {{
         }}
     }} catch {{
         $global:isInstalling = $false
+
+        # 점 애니메이션 타이머 정지
+        try {{ $global:dotAnimationTimer.Stop() }} catch {{ }}
+
         Write-Host "[ERROR] Docker installation exception: $_"
         Update-Progress "설치 예외 발생: $_" 55
 
@@ -745,6 +762,8 @@ function Start-CompleteSetup {{
     # 최종 설치 취소 확인 (실패 확인보다 먼저 체크)
     if ($global:installationCancelled) {{
         $global:isInstalling = $false
+        # 점 애니메이션 타이머 정지
+        try {{ $global:dotAnimationTimer.Stop() }} catch {{ }}
         $statusLabel.Text = "설치가 취소되었습니다."
         $statusLabel.ForeColor = [System.Drawing.Color]::Orange
         $detailLabel.Text = "사용자가 설치를 취소했습니다."
@@ -763,6 +782,8 @@ function Start-CompleteSetup {{
 
     if (-not $installationSuccessful) {{
         $global:isInstalling = $false
+        # 점 애니메이션 타이머 정지
+        try {{ $global:dotAnimationTimer.Stop() }} catch {{ }}
         $statusLabel.Text = "환경 설정 실패"
         $detailLabel.Text = "로그를 확인하여 문제를 해결하세요."
         $statusLabel.ForeColor = [System.Drawing.Color]::Red
@@ -796,12 +817,16 @@ function Start-CompleteSetup {{
     if ($installationSuccessful) {{
         $global:isInstalling = $false
         $global:installationFailed = $false
-        $statusLabel.Text = "✓ 모든 설치가 완료되었습니다!"
+
+        # 점 애니메이션 타이머 정지
+        try {{ $global:dotAnimationTimer.Stop() }} catch {{ }}
+
+        $statusLabel.Text = "모든 설치가 완료되었습니다!"
         $statusLabel.ForeColor = [System.Drawing.Color]::Green
         $detailLabel.Text = "Node: $global:NODE_ID | IP: $global:VPN_IP"
         $progressBar.Value = 100
         Update-Progress '모든 설치가 완료되었습니다!' 100
-        
+
         $closeButton.Text = '완료'
         $closeButton.Enabled = $true
         $startButton.Visible = $false
@@ -809,14 +834,17 @@ function Start-CompleteSetup {{
         # 설치 실패 또는 취소 시
         $global:isInstalling = $false
         $global:installationFailed = $true
-        
+
+        # 점 애니메이션 타이머 정지
+        try {{ $global:dotAnimationTimer.Stop() }} catch {{ }}
+
         if ($global:installationCancelled) {{
-            $statusLabel.Text = "⚠️ 설치가 취소되었습니다."
+            $statusLabel.Text = "설치가 취소되었습니다."
             $statusLabel.ForeColor = [System.Drawing.Color]::Orange
             $detailLabel.Text = "사용자가 설치를 취소했습니다."
             Update-Progress '설치가 취소되었습니다.' $progressBar.Value
         }} else {{
-            $statusLabel.Text = "❌ 설치가 완료되지 않았습니다."
+            $statusLabel.Text = "설치가 완료되지 않았습니다."
             $statusLabel.ForeColor = [System.Drawing.Color]::Red
             $detailLabel.Text = "비밀번호 입력 취소 또는 설치 중 오류가 발생했습니다."
             Update-Progress '설치가 완료되지 않았습니다.' $progressBar.Value
@@ -904,8 +932,11 @@ $closeButton.Add_Click({{
     
     # 정리 후 종료 (더 확실한 종료)
     Write-Host "Closing application"
-    
+
     # 모든 타이머 중지
+    if ($global:dotAnimationTimer) {{
+        try {{ $global:dotAnimationTimer.Stop(); $global:dotAnimationTimer.Dispose() }} catch {{ }}
+    }}
     if ($global:dockerComposeTimer) {{
         $global:dockerComposeTimer.Stop()
         $global:dockerComposeTimer.Dispose()
@@ -977,8 +1008,11 @@ try {{
 }} finally {{
     # 폼이 닫혔을 때 확실한 정리
     Write-Host "Performing final cleanup..." -ForegroundColor Yellow
-    
+
     # 모든 타이머 정리
+    if ($global:dotAnimationTimer) {{
+        try {{ $global:dotAnimationTimer.Stop(); $global:dotAnimationTimer.Dispose() }} catch {{ }}
+    }}
     if ($global:dockerComposeTimer) {{
         $global:dockerComposeTimer.Stop()
         $global:dockerComposeTimer.Dispose()

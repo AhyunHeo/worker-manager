@@ -111,6 +111,19 @@ $form.Controls.Add($closeButton)
 $script:installSuccess = $false
 $script:webAppUrl = $null
 
+# 애니메이션 타이머
+$script:dotCount = 0
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 400
+$timer.Add_Tick({{
+    $currentText = $statusLabel.Text -replace '\\.+$', ''
+    $script:dotCount = ($script:dotCount + 1) % 4
+    $dots = '.' * $script:dotCount
+    $statusLabel.Text = $currentText + $dots
+    [System.Windows.Forms.Application]::DoEvents()
+}})
+$timer.Start()
+
 $form.Show()
 [System.Windows.Forms.Application]::DoEvents()
 
@@ -153,6 +166,7 @@ try {{
         if ($result -eq 'Yes') {{
             Start-Process 'https://www.docker.com/products/docker-desktop/'
         }}
+        try {{ $timer.Stop(); $timer.Dispose() }} catch {{ }}
         $closeButton.Enabled = $true
         # Wait for close button click
         while ($form.Visible) {{
@@ -352,6 +366,7 @@ services:
       - NEXT_PUBLIC_FL_API_URL=http://{local_ip}:{metadata.get('fl_port', 5002)}
       - NEXT_PUBLIC_FL_WS_URL=ws://{local_ip}:{metadata.get('fl_port', 5002)}
       - NEXT_PUBLIC_WORKER_MANAGER_IP={metadata.get('worker_manager_ip', LOCAL_SERVER_IP)}
+      - MAIL_API_URL=http://{local_ip}:{metadata.get('api_port', 8000)}
     depends_on:
       - api
       - fl-api
@@ -537,6 +552,9 @@ WS_MESSAGE_QUEUE_SIZE=100
     Write-Host "Firewall rules: $firewallSuccess/$($ports.Count) successful"
 
     $progressBar.Value = 100
+    $timer.Stop()
+    $timer.Dispose()
+    [System.Windows.Forms.Application]::DoEvents()
     $statusLabel.Text = 'Central server started successfully!'
 
     Write-Host "SUCCESS: Central server started successfully! ($runningCount containers running)"
@@ -563,6 +581,7 @@ WS_MESSAGE_QUEUE_SIZE=100
     )
 
 }} catch {{
+    try {{ $timer.Stop(); $timer.Dispose() }} catch {{ }}
     $statusLabel.Text = "Error: $_"
     Write-Host "========================================="
     Write-Host "ERROR: Installation failed!"
