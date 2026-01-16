@@ -59,3 +59,12 @@ logs/
 *.backup
 archive/
 copyright/
+
+# Excluded from repo
+.dockerignore
+172.18.254.46
+192.168.0.38
+Dockerfile copy
+errorlog.txt
+docs/
+install/
